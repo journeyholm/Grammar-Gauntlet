@@ -564,9 +564,8 @@ const SPAWNED_CARDS = [
         ];
 
         const ALL_CARDS = [
-            { id: 0, name: 'Proper Noun King', category: 'Troop', type: 'Proper Noun', cost: 5, emoji: '👑', health: 550, damage: 75, speed: 0.8, range: 30, attackSpeed: 100, isFlying: false, unlockCost: 0, info: 'A powerful unit that attacks troops and buildings.' },
-            { id: 1, name: 'Collective Noun Horde', category: 'Troop', type: 'Collective Noun', cost: 4, emoji: '👥', health: 48, damage: 12, speed: 2.0, range: 30, attackSpeed: 50, spawnCount: 5, isFlying: true, unlockCost: 0, info: 'A swarm of weak, flying attackers.' },
-            { id: 2, name: 'Abstract Noun Ghost', category: 'Troop', type: 'Abstract Noun', cost: 3, emoji: '👻', health: 220, damage: 30, speed: 1.2, range: 35, attackSpeed: 85, isFlying: true, unlockCost: 200, info: 'A tricky unit that is hard to see.' },
+{ id: 0, name: 'Proper Noun King', category: 'Troop', type: 'Proper Noun', cost: 5, emoji: '👑', health: 800, damage: 75, speed: 0.6, range: 30, attackSpeed: 100, unlockCost: 0, info: 'Heavy Grammatical Weight: High HP, slow movement.' },            
+{ id: 1, name: 'Collective Noun Horde', category: 'Troop', type: 'Collective Noun', cost: 4, emoji: '👥', health: 48, damage: 12, speed: 2.0, range: 30, attackSpeed: 50, spawnCount: 5, info: 'A plural swarm representing a group noun.' },            { id: 2, name: 'Abstract Noun Ghost', category: 'Troop', type: 'Abstract Noun', cost: 3, emoji: '👻', health: 220, damage: 30, speed: 1.2, range: 35, attackSpeed: 85, isFlying: true, unlockCost: 200, info: 'A tricky unit that is hard to see.' },
             { id: 55, name: 'Noun Suffix Swarm', category: 'Troop', type: 'Suffix', cost: 1, emoji: '🐜', health: 30, damage: 10, speed: 2.0, range: 30, attackSpeed: 60, spawnCount: 3, isFlying: false, unlockCost: 50, info: 'A trio of quick attackers.'},
             { id: 56, name: 'Determiner Dart Thrower', category: 'Troop', type: 'Determiner', cost: 2, emoji: '🎯', health: 100, damage: 30, speed: 1.8, range: 130, attackSpeed: 40, isFlying: false, unlockCost: 200, info: 'A fast-attacking ranged troop.'},
             { id: 10, name: 'Common Noun Peasant', category: 'Troop', type: 'Common Noun', cost: 2, emoji: '👨‍🌾', health: 90, damage: 18, speed: 1.6, range: 100, attackSpeed: 60, spawnCount: 2, isFlying: false, unlockCost: 100, info: 'Cheap, swarming attackers.' },
@@ -594,8 +593,7 @@ const SPAWNED_CARDS = [
             { id: 44, name: 'Misplaced Modifier', category: 'Troop', type: 'Modifier', cost: 3, emoji: '❓', health: 250, damage: 50, speed: 1.3, range: 120, attackSpeed: 90, unlockCost: 700 },
             { id: 48, name: 'Tense Shift Trap', category: 'Spell', type: 'Tense', cost: 3, emoji: '⏳', unlockCost: 600 },
             { id: 49, name: 'Semicolon Link', category: 'Building', type: 'Punctuation', cost: 3, emoji: '🔗', health: 400, damage: 0, duration: 1200, range: 0, unlockCost: 800 },
-            { id: 3, name: 'Action Verb Fireball', category: 'Spell', type: 'Action Verb', cost: 4, emoji: '🔥', unlockCost: 0 },
-            { id: 4, name: 'Adjective Shield', category: 'Spell', type: 'Adjective', cost: 3, emoji: '🛡️', unlockCost: 150 },
+{ id: 3, name: 'Active Verb Fireball', category: 'Spell', type: 'Action Verb', cost: 4, emoji: '🔥', damage: 150, radius: 60, info: 'Intense Action: Deals high impact damage.' },            { id: 4, name: 'Adjective Shield', category: 'Spell', type: 'Adjective', cost: 3, emoji: '🛡️', unlockCost: 150 },
             { id: 5, name: 'Adverb Haste', category: 'Spell', type: 'Adverb', cost: 2, emoji: '⚡', speedBoost: 2, duration: 300, radius: 70, unlockCost: 150 },
             { id: 6, name: 'Pronoun Copy', category: 'Spell', type: 'Pronoun', cost: 2, emoji: '👥', unlockCost: 300 },
             { id: 7, name: 'Preposition Portal', category: 'Spell', type: 'Preposition', cost: 3, emoji: '🌀', unlockCost: 250 },
@@ -1102,7 +1100,7 @@ class Tower {
                 this.isActivated = true; // Damage wakes up the tower
             }
             attack(target) { gameState.projectiles.push(new Projectile(this, target)); }
-            draw() {
+draw() {
                 ctx.save();
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
@@ -1114,6 +1112,29 @@ class Tower {
                 ctx.fillText(this.isKing ? '👑' : '🏰', this.x, this.y);
                 ctx.restore();
 
+                // --- RESTORED EMOTE LOGIC ---
+                if (this.emote.duration > 0) {
+                    ctx.save();
+                    // Position: Below for opponent (top), Above for player (bottom)
+                    const isTopTower = this.y < RIVER_Y;
+                    const bubbleY = isTopTower ? this.y + 60 : this.y - 60;
+                    
+                    // Bubble Background (Glassmorphism)
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                    ctx.strokeStyle = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(this.x - 30, bubbleY - 30, 60, 60, [15]);
+                    ctx.fill(); ctx.stroke();
+                    
+                    // Emoji Text
+                    ctx.font = "40px sans-serif";
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.emote.text, this.x, bubbleY);
+                    ctx.restore();
+                }
+
                 // Health Bar
                 const barW = this.size * 2;
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -1121,7 +1142,7 @@ class Tower {
                 ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d'; 
                 ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * (this.health / this.maxHealth), 6);
             }
-        }
+}
 
 class Unit {
             constructor(card, x, y, owner, level = 1) {
@@ -1147,8 +1168,22 @@ class Unit {
                     } else { this.updateMovement(); }
                 } else { this.moveForward(); }
             }
-            updateMovement() {
-                const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+updateMovement() {
+                const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
+                
+                let targetX = this.target.x;
+                let targetY = this.target.y;
+
+                // --- CLASH ROYALE: BRIDGE PATHFINDING ---
+                // If target is across the river, walk to the nearest bridge first
+                if (onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
+                    const leftBridge = ARENA_WIDTH * 0.25;
+                    const rightBridge = ARENA_WIDTH * 0.75;
+                    targetX = Math.abs(this.x - leftBridge) < Math.abs(this.x - rightBridge) ? leftBridge : rightBridge;
+                    targetY = this.owner === 'player' ? RIVER_Y + 20 : RIVER_Y - 20;
+                }
+
+                const angle = Math.atan2(targetY - this.y, targetX - this.x);
                 this.x += Math.cos(angle) * this.speed;
                 this.y += Math.sin(angle) * this.speed;
             }
@@ -1292,36 +1327,28 @@ function draw() {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // --- CLASH ROYALE: SCREEN SHAKE ---
             if (gameState.shakeIntensity > 0) {
                 const sx = (Math.random() - 0.5) * gameState.shakeIntensity;
                 const sy = (Math.random() - 0.5) * gameState.shakeIntensity;
                 ctx.translate(sx, sy);
                 gameState.shakeIntensity *= 0.9;
             }
+
             ctx.scale(scaleX, scaleY);
 
-            // --- THE EVOLVING ARENA ---
+            // --- THE ARENA MAP ---
             const theme = getArenaTheme(playerData.wins);
-            
-            // Background Base
-            ctx.fillStyle = theme.grass1; 
-            ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
-            
-            // DRAW PATHS (Roadways)
+            ctx.fillStyle = theme.grass1; ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
             ctx.fillStyle = theme.path;
-            ctx.fillRect(ARENA_WIDTH * 0.15, 0, 60, ARENA_HEIGHT); // Left Lane
-            ctx.fillRect(ARENA_WIDTH * 0.73, 0, 60, ARENA_HEIGHT); // Right Lane
-            ctx.fillRect(0, RIVER_Y - 30, ARENA_WIDTH, 60); // Connecting Road
+            ctx.fillRect(ARENA_WIDTH * 0.15, 0, 60, ARENA_HEIGHT);
+            ctx.fillRect(ARENA_WIDTH * 0.73, 0, 60, ARENA_HEIGHT);
+            ctx.fillRect(0, RIVER_Y - 30, ARENA_WIDTH, 60);
 
-            // DRAW RIVER
-            ctx.fillStyle = theme.river;
-            ctx.fillRect(0, RIVER_Y - 20, ARENA_WIDTH, 40);
-            ctx.strokeStyle = theme.bridgeStroke;
-            ctx.lineWidth = 2;
+            ctx.fillStyle = theme.river; ctx.fillRect(0, RIVER_Y - 20, ARENA_WIDTH, 40);
+            ctx.strokeStyle = theme.bridgeStroke; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, RIVER_Y - 20); ctx.lineTo(ARENA_WIDTH, RIVER_Y - 20); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, RIVER_Y + 20); ctx.lineTo(ARENA_WIDTH, RIVER_Y + 20); ctx.stroke();
-
-            // DRAW BRIDGES
             ctx.fillStyle = theme.bridge;
             ctx.fillRect(ARENA_WIDTH * 0.15, RIVER_Y - 25, 60, 50); 
             ctx.fillRect(ARENA_WIDTH * 0.73, RIVER_Y - 25, 60, 50);
@@ -1329,16 +1356,32 @@ function draw() {
             // Render Game Objects
             [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.draw());
 
+            // --- CLASH ROYALE: CROWN UI ---
+            const pCrowns = 3 - gameState.player.towers.length;
+            const oCrowns = 3 - gameState.opponent.towers.length;
+            ctx.font = "bold 24px Bangers"; ctx.fillStyle = "#fbbf24";
+            ctx.textAlign = "left"; ctx.fillText(`👑 ${oCrowns}`, 20, 40); 
+            ctx.textAlign = "right"; ctx.fillText(`👑 ${pCrowns}`, ARENA_WIDTH - 20, 40); 
+
             // UI: Timer
             const minutes = Math.floor(gameState.gameTimer / 60);
             const seconds = Math.floor(gameState.gameTimer % 60);
             ctx.font = "bold 32px Bangers";
-            ctx.fillStyle = gameState.isDoubleJuice ? '#ff00e6' : '#ffffff';
             ctx.textAlign = 'center';
+            
+            if (gameState.isDoubleJuice) {
+                ctx.fillStyle = '#ff00e6';
+                ctx.shadowBlur = 10 + Math.sin(Date.now() / 200) * 10;
+                ctx.shadowColor = "#ff00e6";
+            } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = 0;
+            }
             ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, ARENA_WIDTH/2, 40);
 
             ctx.restore();
             
+            // Side Panel UI Updates
             juiceBar.style.height = `${(gameState.player.juice / JUICE_MAX) * 100}%`;
             juiceText.textContent = Math.floor(gameState.player.juice);
             renderPlayerHand();
@@ -2433,9 +2476,13 @@ function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
                     playerData.errorsFound++;
                     errorsFoundCount.textContent = playerData.errorsFound;
 
-                    if(playerData.errorsFound >= 3) {
+if(playerData.errorsFound >= 3) {
                         proofreadModal.style.display = 'none';
-                        endGame("You Win by Proofreading!");
+                        // INSTEAD OF ENDGAME: Grant a massive shield and resume battle
+                        const myKing = gameState.player.towers.find(t => t.isKing);
+                        myKing.health = myKing.maxHealth; // Full Restore!
+                        gameState.gameOver = false;
+                        gameLoopId = setInterval(update, 1000/60);
                     }
                 };
             });

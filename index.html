@@ -41,30 +41,43 @@
     background: linear-gradient(90deg, rgba(255,255,255,0.2), transparent);
 }
 
-        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background-color: #1a202c; color: white; overflow: hidden; }
-        .bangers-font { font-family: 'Bangers', cursive; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+body, html { 
+            height: 100dvh; 
+            width: 100vw;
+            margin: 0; 
+            padding: 0;
+            font-family: 'Inter', sans-serif; 
+            background-color: #1a202c; 
+            color: white; 
+            overflow: hidden;
+            /* Prevents the browser from zooming on double-tap */
+            touch-action: none; 
+            -webkit-text-size-adjust: none;
+        }        .bangers-font { font-family: 'Bangers', cursive; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         .btn-wood { background: linear-gradient(180deg, #a26b21, #854d0e); border: 2px solid #fbbf24; border-radius: 10px; padding: 10px 20px; color: white; transition: all 0.2s; box-shadow: 0 4px #92400e; }
         .btn-wood:hover { transform: translateY(-2px); box-shadow: 0 6px #92400e; filter: brightness(1.1); }
         .btn-wood:active { transform: translateY(2px); box-shadow: 0 2px #92400e; }
         .btn-wood[disabled] { background: #4a5568; box-shadow: 0 4px #2d3748; cursor: not-allowed; }
 /* Update your card style with this */
 
+/* FIX: More compact card dimensions for mobile thumbs */
 .card {
     width: 100%;
-    max-width: 100px; /* Prevents cards from getting too huge */
-    aspect-ratio: 3 / 4;
+    max-width: 75px; 
+    aspect-ratio: 1 / 1.25; 
     border: 3px solid #f0c040;
     border-radius: 10px;
     position: relative;
-    box-shadow: 0 4px 0 #b8860b, 0 6px 12px rgba(0,0,0,0.5); /* 3D Bottom edge */
+    box-shadow: 0 4px 0 #b8860b, 0 6px 12px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 2px;
+    padding: 4px 2px;
     margin: 0 auto;
     transition: transform 0.1s;
     cursor: pointer;
+    background: white;
 }
 
 .card:active {
@@ -109,14 +122,23 @@
         #question-modal, #feedback-modal, #proofread-modal, #card-info-modal, #warmup-modal, #quests-modal, #chest-opening-modal, #confirmation-modal, #challenge-question-modal { backdrop-filter: blur(5px); }
 /* Modern Screen Containment */
 .screen { 
-    position: absolute; 
-    top: 0; left: 0; 
-    width: 100vw; 
-    height: 100vh; 
-    z-index: 100;
-    pointer-events: none;
-    overflow: hidden; /* Prevents the whole page from scrolling */
-}
+            position: fixed; /* Fixed is better for mobile than absolute */
+            top: 0; left: 0; 
+            width: 100vw; 
+            height: 100dvh; 
+            z-index: 100;
+            pointer-events: none;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Specifically prevent zooming on all buttons and cards */
+        button, .card, canvas {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
 .screen:not(.hidden) {
     pointer-events: auto;
@@ -528,6 +550,22 @@ button, .card {
             left: { p_side: { x: ARENA_WIDTH * 0.25, y: RIVER_Y + 20 }, o_side: { x: ARENA_WIDTH * 0.25, y: RIVER_Y - 20 } },
             right: { p_side: { x: ARENA_WIDTH * 0.75, y: RIVER_Y + 20 }, o_side: { x: ARENA_WIDTH * 0.75, y: RIVER_Y - 20 } },
         };
+
+        // FIX: Mobile Safe Area Resizing
+        function setMobileHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        window.addEventListener('resize', setMobileHeight);
+        window.addEventListener('orientationchange', setMobileHeight);
+        setMobileHeight();
+
+        // Extra protection: prevent the "pull-to-refresh" gesture on mobile
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+
 const CHEST_TYPES = {
             'Wooden Book': { emoji: '📦', unlockDuration: 15 * 60 * 1000, gold: [50, 100], cards: 5, borderColor: 'border-gray-500' },
             'Silver Tome': { emoji: '🥈', unlockDuration: 60 * 60 * 1000, gold: [150, 250], cards: 7, borderColor: 'border-gray-300' },
@@ -1049,191 +1087,248 @@ const ALL_ACHIEVEMENTS = [
 
         // --- Classes ---
 class Tower {
-            constructor(x, y, isKing, owner, level = 1) {
-                this.x = x; this.y = y; this.isKing = isKing; this.owner = owner;
-                this.level = level;
-                this.emote = { text: '', duration: 0 };
-                const scale = Math.pow(1.1, level - 1);
-                this.maxHealth = isKing ? Math.round(1500 * scale) : Math.round(900 * scale);
-                this.health = this.maxHealth;
-                this.size = isKing ? 30 : 25; 
-                this.range = isKing ? 150 : 195;
-                this.damage = isKing ? Math.round(20 * scale) : Math.round(35 * scale);
-                this.attackSpeed = 95; this.attackCooldown = 0; this.target = null;
-                this.isActivated = isKing ? false : true; // King starts "Sleeping"
-                this.effects = {};
-                this.card = { id: -1 }; 
-            }
-            update() {
-                if (this.emote.duration > 0) this.emote.duration--;
-                
-                // --- CLASH ROYALE: KING WAKE UP LOGIC ---
-                if (this.isKing && !this.isActivated) {
-                    const sideTowers = gameState[this.owner].towers.filter(t => !t.isKing);
-                    // Wake up if a side tower is lost OR King has taken damage
-                    if (sideTowers.length < 2 || this.health < this.maxHealth) {
-                        this.isActivated = true;
-                    }
-                }
+    constructor(x, y, isKing, owner, level = 1) {
+        this.x = x; this.y = y; this.isKing = isKing; this.owner = owner;
+        this.level = level;
+        this.emote = { text: '', duration: 0 };
+        const scale = Math.pow(1.1, level - 1);
+        this.maxHealth = isKing ? Math.round(1500 * scale) : Math.round(900 * scale);
+        this.health = this.maxHealth;
+        this.size = isKing ? 30 : 25; 
+        this.range = isKing ? 150 : 195;
+        this.damage = isKing ? Math.round(20 * scale) : Math.round(35 * scale);
+        this.attackSpeed = 95; this.attackCooldown = 0; this.target = null;
+        this.isActivated = isKing ? false : true; 
+        this.effects = {};
+        this.card = { id: -1 }; 
+    }
 
-                if (!this.isActivated) return;
-
-                if (this.attackCooldown > 0) this.attackCooldown--;
-                if (!this.target || this.target.health <= 0) this.findTarget();
-                if (this.target && this.attackCooldown <= 0) {
-                    if (distance(this.x, this.y, this.target.x, this.target.y) <= this.range) {
-                        this.attack(this.target); 
-                        this.attackCooldown = this.attackSpeed;
-                    } else { this.target = null; }
-                }
+    update() {
+        if (this.emote.duration > 0) this.emote.duration--;
+        
+        if (this.isKing && !this.isActivated) {
+            const sideTowers = gameState[this.owner].towers.filter(t => !t.isKing);
+            if (sideTowers.length < 2 || this.health < this.maxHealth) {
+                this.isActivated = true;
             }
-            findTarget() {
-                const enemies = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-                let closestEnemy = null; let minDistance = this.range + 1;
-                for (const enemy of enemies) {
-                    const d = distance(this.x, this.y, enemy.x, enemy.y);
-                    if (d < minDistance) { minDistance = d; closestEnemy = enemy; }
-                }
-                this.target = closestEnemy;
-            }
-takeDamage(amount, isSpell = false) {
-                // REDUCED DAMAGE TO TOWERS FROM SPELLS (35% damage)
-                const finalDamage = isSpell ? Math.round(amount * 0.35) : amount;
-                this.health -= finalDamage;
-                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, finalDamage));
-                gameState.shakeIntensity = 8;
-                this.isActivated = true; 
-            }
-            attack(target) { gameState.projectiles.push(new Projectile(this, target)); }
-draw() {
-                ctx.save();
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
-                ctx.font = `${this.size * 1.6}px sans-serif`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                
-                // DRAW TOWER (Faded if sleeping)
-                if (this.isKing && !this.isActivated) ctx.globalAlpha = 0.6;
-                ctx.fillText(this.isKing ? '👑' : '🏰', this.x, this.y);
-                ctx.restore();
-
-                // --- RESTORED EMOTE LOGIC ---
-                if (this.emote.duration > 0) {
-                    ctx.save();
-                    // Position: Below for opponent (top), Above for player (bottom)
-                    const isTopTower = this.y < RIVER_Y;
-                    const bubbleY = isTopTower ? this.y + 60 : this.y - 60;
-                    
-                    // Bubble Background (Glassmorphism)
-                    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-                    ctx.strokeStyle = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.roundRect(this.x - 30, bubbleY - 30, 60, 60, [15]);
-                    ctx.fill(); ctx.stroke();
-                    
-                    // Emoji Text
-                    ctx.font = "40px sans-serif";
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(this.emote.text, this.x, bubbleY);
-                    ctx.restore();
-                }
-
-                // Health Bar
-                const barW = this.size * 2;
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW, 6);
-                ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d'; 
-ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * (this.health / this.maxHealth), 6);
-            } // This closes the draw() method
         }
+
+        if (!this.isActivated) return;
+
+        if (this.attackCooldown > 0) this.attackCooldown--;
+        if (!this.target || this.target.health <= 0) this.findTarget();
+        if (this.target && this.attackCooldown <= 0) {
+            if (distance(this.x, this.y, this.target.x, this.target.y) <= this.range) {
+                this.attack(this.target); 
+                this.attackCooldown = this.attackSpeed;
+            } else { this.target = null; }
+        }
+    }
+
+    findTarget() {
+        const enemies = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
+        let closestEnemy = null; let minDistance = this.range + 1;
+        for (const enemy of enemies) {
+            const d = distance(this.x, this.y, enemy.x, enemy.y);
+            if (d < minDistance) { minDistance = d; closestEnemy = enemy; }
+        }
+        this.target = closestEnemy;
+    }
+
+takeDamage(amount, isSpell = false) {
+        const finalDamage = isSpell ? Math.round(amount * 0.35) : amount;
+        
+        // FIX: Subtract the damage and ensure it doesn't stay stuck at 1
+        this.health -= finalDamage;
+        
+        // Visuals
+        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, finalDamage));
+        gameState.shakeIntensity = 8;
+        
+        // If it's a King Tower, it "wakes up" when hit
+        this.isActivated = true; 
+
+        // Final check to ensure health is clean 0 for the filter
+        if (this.health < 0) this.health = 0;
+    }
+
+    attack(target) { gameState.projectiles.push(new Projectile(this, target)); }
+
+draw() {
+        ctx.save();
+        
+        // --- 1. MASTERY AESTHETICS (Level 5+) ---
+        if (this.level >= 5) {
+            // Level 5+ gets a Golden Aura, Level 11+ gets a Diamond Glow
+            ctx.shadowBlur = this.level >= 11 ? 40 : 30;
+            ctx.shadowColor = this.level >= 11 ? "#00fbff" : "#FFD700";
+            
+            // Draw Mastery Icon above the tower
+            const masteryIcon = this.level >= 11 ? "💎" : (this.level >= 8 ? "🔥" : "⭐");
+            ctx.font = "bold 16px Inter";
+            ctx.fillText(masteryIcon, this.x, this.y - this.size - 15);
+        } else {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
+        }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        
+        // --- 2. ARENA SKIN LOGIC ---
+        let towerEmoji = this.isKing ? '👑' : '🏰';
+        if (playerData.wins >= 10) {
+            towerEmoji = this.isKing ? '🔥' : '🌋'; 
+        } else if (playerData.wins >= 5) {
+            towerEmoji = this.isKing ? '📕' : '📚'; 
+        }
+
+        if (this.isKing && !this.isActivated) ctx.globalAlpha = 0.6;
+        ctx.font = `${this.size * 1.6}px sans-serif`;
+        ctx.fillText(towerEmoji, this.x, this.y);
+        ctx.restore();
+
+        // --- 3. FIX: EMOTE RENDERING ---
+        if (this.emote.duration > 0) {
+            ctx.save();
+            ctx.font = '40px sans-serif';
+            ctx.textAlign = 'center';
+            // Slight float/bounce effect
+            const bounce = Math.sin(this.emote.duration / 10) * 5;
+            ctx.fillText(this.emote.text, this.x, this.y - this.size - 40 + bounce);
+            ctx.restore();
+        }
+
+        // --- 4. HEALTH BAR ---
+        const barW = this.size * 2;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW, 6);
+        ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d'; 
+        const healthPercent = Math.max(0, Math.min(1, this.health / this.maxHealth));
+        ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * healthPercent, 6);
+    }
+}
 
 class Unit {
-            constructor(card, x, y, owner, level = 1) {
-                this.deployTimer = 60;
-                this.card = card;
-                this.level = level; this.x = x; this.y = y; this.owner = owner;
-                const scale = Math.pow(1.1, level - 1);
-                this.maxHealth = Math.round(card.health * scale); this.health = this.maxHealth;
-                this.damage = Math.round(card.damage * scale);
-                this.speed = card.speed; this.range = card.range;
-                this.attackSpeed = card.attackSpeed;
-                this.attackCooldown = 0; this.size = 20; this.target = null; this.effects = {};
-                // NEW: Specific target type (Buildings vs Anything)
-                this.targetsOnlyBuildings = card.targetsBuildings || false;
-            }
-            update() {
-                if (this.deployTimer > 0) { this.deployTimer--; return; }
-                if (this.attackCooldown > 0) this.attackCooldown--;
-                this.findTarget();
-                if (this.target) {
-                    if (distance(this.x, this.y, this.target.x, this.target.y) <= this.range) {
-                        if (this.attackCooldown <= 0) { this.attack(this.target); this.attackCooldown = this.attackSpeed; }
-                    } else { this.updateMovement(); }
-                } else { this.moveForward(); }
-            }
-updateMovement() {
-                const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
-                
-                let targetX = this.target.x;
-                let targetY = this.target.y;
+    constructor(card, x, y, owner, level = 1) {
+        this.deployTimer = 60;
+        this.card = card;
+        this.level = level; this.x = x; this.y = y; this.owner = owner;
+        const scale = Math.pow(1.1, level - 1);
+        this.maxHealth = Math.round(card.health * scale); this.health = this.maxHealth;
+        this.damage = Math.round(card.damage * scale);
+        this.speed = card.speed; this.range = card.range;
+        this.attackSpeed = card.attackSpeed;
+        this.attackCooldown = 0; this.size = 20; this.target = null; this.effects = {};
+        this.targetsOnlyBuildings = card.targetsBuildings || false;
+    }
 
-                // --- CLASH ROYALE: BRIDGE PATHFINDING ---
-                // If target is across the river, walk to the nearest bridge first
-                if (onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
-                    const leftBridge = ARENA_WIDTH * 0.25;
-                    const rightBridge = ARENA_WIDTH * 0.75;
-                    targetX = Math.abs(this.x - leftBridge) < Math.abs(this.x - rightBridge) ? leftBridge : rightBridge;
-                    targetY = this.owner === 'player' ? RIVER_Y + 20 : RIVER_Y - 20;
-                }
-
-                const angle = Math.atan2(targetY - this.y, targetX - this.x);
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
-            }
-            findTarget() {
-                // TACTICAL AI: Filter potential targets based on unit type
-                const enemyTowers = this.owner === 'player' ? gameState.opponent.towers : gameState.player.towers;
-                const enemyUnits = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-                
-                // If it's a "Building Targeter" (Gerund Golem), ignore units!
-                const potential = this.targetsOnlyBuildings ? [...enemyTowers] : [...enemyUnits, ...enemyTowers];
-                
-                let closest = null; let minD = Infinity;
-                potential.forEach(t => {
-                    const d = distance(this.x, this.y, t.x, t.y);
-                    if (d < minD) { minD = d; closest = t; }
-                });
-                this.target = closest;
-            }
-            moveForward() { this.y += (this.owner === 'player' ? -1 : 1) * this.speed * 0.5; }
-            takeDamage(amount) { 
-                this.health -= amount; 
-                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, amount)); 
-            }
-            attack(target) { target.takeDamage(this.damage); }
-            draw() {
-                ctx.save();
-                if (this.deployTimer > 0) {
-                    const progress = this.deployTimer / 60;
-                    ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI * 2 * progress);
-                    ctx.strokeStyle = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
-                    ctx.lineWidth = 3; ctx.stroke();
-                    ctx.globalAlpha = 0.4;
-                }
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
-                ctx.font = `${this.size * 1.6}px sans-serif`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(this.card.emoji, this.x, this.y);
-                ctx.restore();
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
-                ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
-                ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size * (this.health / this.maxHealth), 4);
-            }
+    update() {
+        if (this.deployTimer > 0) { this.deployTimer--; return; }
+        if (this.attackCooldown > 0) this.attackCooldown--;
+        
+        // FIX: Re-verify target is still alive and in range
+        if (!this.target || this.target.health <= 0) {
+            this.findTarget();
         }
+
+        if (this.target) {
+            const dist = distance(this.x, this.y, this.target.x, this.target.y);
+            // FIX: Units stop to attack if within range
+            if (dist <= this.range + 5) { 
+                if (this.attackCooldown <= 0) { 
+                    this.attack(this.target); 
+                    this.attackCooldown = this.attackSpeed; 
+                }
+            } else { 
+                this.updateMovement(); 
+            }
+        } else { 
+            this.moveForward(); 
+        }
+    }
+
+    updateMovement() {
+        const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
+        
+        let targetX = this.target.x;
+        let targetY = this.target.y;
+
+        if (onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
+            const leftBridge = ARENA_WIDTH * 0.25;
+            const rightBridge = ARENA_WIDTH * 0.75;
+            targetX = Math.abs(this.x - leftBridge) < Math.abs(this.x - rightBridge) ? leftBridge : rightBridge;
+            targetY = this.owner === 'player' ? RIVER_Y + 20 : RIVER_Y - 20;
+        }
+
+        const angle = Math.atan2(targetY - this.y, targetX - this.x);
+        this.x += Math.cos(angle) * this.speed;
+        this.y += Math.sin(angle) * this.speed;
+    }
+
+    findTarget() {
+        const enemyTowers = this.owner === 'player' ? gameState.opponent.towers : gameState.player.towers;
+        const enemyUnits = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
+        const potential = this.targetsOnlyBuildings ? [...enemyTowers] : [...enemyUnits, ...enemyTowers];
+        
+        let closest = null; let minD = Infinity;
+        potential.forEach(t => {
+            const d = distance(this.x, this.y, t.x, t.y);
+            if (d < minD) { minD = d; closest = t; }
+        });
+        this.target = closest;
+    }
+
+    moveForward() { this.y += (this.owner === 'player' ? -1 : 1) * this.speed * 0.5; }
+
+    takeDamage(amount) { 
+        this.health = Math.max(0, this.health - amount); 
+        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, amount)); 
+    }
+
+    attack(target) { 
+        // FIX: Explicitly call takeDamage to ensure the Tower health reduces
+        if (target && target.takeDamage) {
+            target.takeDamage(this.damage); 
+        }
+    }
+
+draw() {
+        ctx.save();
+        if (this.deployTimer > 0) {
+            const progress = this.deployTimer / 60;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI * 2 * progress);
+            ctx.strokeStyle = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
+            ctx.lineWidth = 3; ctx.stroke();
+            ctx.globalAlpha = 0.4;
+        }
+
+        // --- MASTERY AESTHETICS (Level 5+) ---
+        if (this.level >= 5) {
+            ctx.shadowBlur = 25;
+            // Golden for Mastery 1/2, Cyan for Mastery 3
+            ctx.shadowColor = this.level >= 11 ? "#00fbff" : "#FFD700";
+            
+            // Tiny mastery badge next to the unit
+            const rankIcon = this.level >= 11 ? "💎" : (this.level >= 8 ? "🔥" : "⭐");
+            ctx.font = "10px sans-serif";
+            ctx.fillText(rankIcon, this.x + 12, this.y - 12);
+        } else {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
+        }
+
+        ctx.font = `${this.size * 1.6}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(this.card.emoji, this.x, this.y);
+        ctx.restore();
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
+        ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
+        const healthPercent = Math.max(0, Math.min(1, this.health / this.maxHealth));
+        ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size * healthPercent, 4);
+    }
+}
 
         class Projectile {
             constructor(source, target) {
@@ -1346,21 +1441,35 @@ function draw() {
 
             ctx.scale(scaleX, scaleY);
 
-            // --- THE ARENA MAP ---
-            const theme = getArenaTheme(playerData.wins);
-            ctx.fillStyle = theme.grass1; ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
-            ctx.fillStyle = theme.path;
-            ctx.fillRect(ARENA_WIDTH * 0.15, 0, 60, ARENA_HEIGHT);
-            ctx.fillRect(ARENA_WIDTH * 0.73, 0, 60, ARENA_HEIGHT);
-            ctx.fillRect(0, RIVER_Y - 30, ARENA_WIDTH, 60);
+// --- THE ENHANCED ARENA MAP ---
+const theme = getArenaTheme(playerData.wins);
+ctx.fillStyle = theme.grass1; ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
 
-            ctx.fillStyle = theme.river; ctx.fillRect(0, RIVER_Y - 20, ARENA_WIDTH, 40);
-            ctx.strokeStyle = theme.bridgeStroke; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(0, RIVER_Y - 20); ctx.lineTo(ARENA_WIDTH, RIVER_Y - 20); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, RIVER_Y + 20); ctx.lineTo(ARENA_WIDTH, RIVER_Y + 20); ctx.stroke();
-            ctx.fillStyle = theme.bridge;
-            ctx.fillRect(ARENA_WIDTH * 0.15, RIVER_Y - 25, 60, 50); 
-            ctx.fillRect(ARENA_WIDTH * 0.73, RIVER_Y - 25, 60, 50);
+// Draw the River
+ctx.fillStyle = theme.river; ctx.fillRect(0, RIVER_Y - 20, ARENA_WIDTH, 40);
+
+// NEW: Visual Obstacles (Students must path around these)
+ctx.fillStyle = theme.bridge;
+if (playerData.wins >= 10) {
+    // Volcanic Rocks in the middle of the lanes
+    ctx.fillText('🪨', ARENA_WIDTH * 0.5, RIVER_Y + 100);
+    ctx.fillText('🪨', ARENA_WIDTH * 0.5, RIVER_Y - 100);
+} else if (playerData.wins >= 5) {
+    // Floating Book Piles
+    ctx.fillText('📖', ARENA_WIDTH * 0.5, RIVER_Y + 80);
+}
+
+// Bridges
+ctx.fillRect(ARENA_WIDTH * 0.15, RIVER_Y - 25, 60, 50); 
+ctx.fillRect(ARENA_WIDTH * 0.73, RIVER_Y - 25, 60, 50);
+
+// --- NEW: AMBIENT PARTICLES (Embers/Ink) ---
+if (Math.random() > 0.92) {
+    let pX = Math.random() * ARENA_WIDTH;
+    let pY = Math.random() * ARENA_HEIGHT;
+    let pEmoji = playerData.wins >= 10 ? '🔥' : (playerData.wins >= 5 ? '🖋️' : '🍃');
+    gameState.particles.push(new Particle(pX, pY)); // Reuses your particle system
+}
 
             // Render Game Objects with Safety Check
             const drawables = [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles];
@@ -1409,92 +1518,117 @@ function draw() {
         }
 
 function update() {
-            if (gameState.gameOver) return;
-            
-            // --- NEW: COUNT DOWN THE NEURAL LOCKOUT ---
-            if (gameState.player.neuralLockout > 0) gameState.player.neuralLockout--;
+    if (gameState.gameOver) return;
+    
+    // Neural Lockout logic
+    if (gameState.player.neuralLockout > 0) gameState.player.neuralLockout--;
 
-            gameState.gameTimer -= 1/60;
-            // ... (the rest of your existing code continues below)
-            if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
+    gameState.gameTimer -= 1/60;
+    if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
 
-            if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
-            const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
-            gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
-            gameState.opponent.juice = Math.min(JUICE_MAX, gameState.opponent.juice + regen);
+    if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
+    const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
+    gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
+    gameState.opponent.juice = Math.min(JUICE_MAX, gameState.opponent.juice + regen);
 
-            opponentAI();
+    opponentAI();
 
-            [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.update());
+    // Update all objects
+    [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => {
+        if (o && o.update) o.update();
+    });
 
-            // --- CLASH ROYALE: GERUND GOLEM SPLIT LOGIC ---
-            const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
-            deadUnits.forEach(u => {
-                if (u.card.id === 11) { // 11 is the Gerund Golem ID
-                    for(let i=0; i<2; i++) {
-                        // Spawns 2 Suffix Swarms (ID 55) at the death location
-                        const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
-                        mini.deployTimer = 0; // Mini units spawn instantly
-                        gameState[u.owner].units.push(mini);
-                    }
-                }
-            });
-
-            gameState.player.units = gameState.player.units.filter(u => u.health > 0);
-            gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
-            gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
-            gameState.effects = gameState.effects.filter(e => e.duration > 0);
-            gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
-            gameState.particles = gameState.particles.filter(p => p.duration > 0);
-
-            if (gameState.opponent.towers.find(t => t.isKing).health <= 0) endGame("Grammatical Victory!");
-            if (gameState.player.towers.find(t => t.isKing).health <= 0) endGame("Deconstructed!");
-            
-            draw();
+    // --- CLASH ROYALE: DEATH RATTLE & CLEANUP ---
+    
+    // 1. Handle Unit Deaths (Splitting Golem)
+    const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
+    deadUnits.forEach(u => {
+        if (u.card.id === 11) { // Gerund Golem
+            for(let i=0; i<2; i++) {
+                const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
+                mini.deployTimer = 0;
+                gameState[u.owner].units.push(mini);
+            }
         }
+    });
 
-        function actuallyStartGame(bonusJuice = false) {
-            if (!QUESTIONS_DATABASE.includes(EXTENDED_QUESTIONS[0])) QUESTIONS_DATABASE.push(...EXTENDED_QUESTIONS);
-            
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            gameContainer.style.display = 'block';
-            playerUiPanel.style.display = 'flex';
-            emotePanel.style.display = 'flex';
-            gameOverMessage.style.display = 'none';
-            
-            resetGameState();
-            if(bonusJuice) gameState.player.juice++;
+    // 2. FIX: REMOVE DEAD TOWERS (This is why they weren't dying)
+    const deadOpponentTowers = gameState.opponent.towers.filter(t => t.health <= 0);
+    if (deadOpponentTowers.length > 0) {
+        playerData.stats.towersDestroyed += deadOpponentTowers.length;
+        gameState.opponent.towers = gameState.opponent.towers.filter(t => t.health > 0);
+        gameState.shakeIntensity = 15; // Feedback shake
+    }
 
-            // AI Scaling Factor (1.0 to 2.5) based on player wins
-            gameState.difficultyFactor = Math.min(2.5, 1 + (playerData.wins / 8));
+    const deadPlayerTowers = gameState.player.towers.filter(t => t.health <= 0);
+    if (deadPlayerTowers.length > 0) {
+        gameState.player.towers = gameState.player.towers.filter(t => t.health > 0);
+    }
 
-            const playerDeckCards = playerData.deck.map(id => { 
-                const cardData = playerData.cards.find(c => c.id === id); 
-                return { ...[...ALL_CARDS, ...SPAWNED_CARDS].find(c => c.id === id), ...cardData }; 
-            });
-            gameState.player.gameDeck = shuffle(playerDeckCards);
-            for (let i = 0; i < HAND_SIZE; i++) drawCard('player');
-            gameState.player.handKey++;
-            
-            const aiLevel = Math.max(1, Math.floor(1 + (playerData.wins / 3)));
+    // 3. General Cleanup
+    gameState.player.units = gameState.player.units.filter(u => u.health > 0);
+    gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
+    gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
+    gameState.effects = gameState.effects.filter(e => e.duration > 0);
+    gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
+    gameState.particles = gameState.particles.filter(p => p.duration > 0);
 
-            // Setup Towers
-            gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
-            gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
-            gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
-            
-            gameState.opponent.gameDeck = shuffle([...ALL_CARDS].map(c => ({...c, level: aiLevel})));
-            for (let i = 0; i < HAND_SIZE; i++) drawCard('opponent');
-            
-            gameState.opponent.towers.push(new Tower(ARENA_WIDTH / 2, 60, true, 'opponent', aiLevel));
-            gameState.opponent.towers.push(new Tower(ARENA_WIDTH * 0.2, 150, false, 'opponent', aiLevel));
-            gameState.opponent.towers.push(new Tower(ARENA_WIDTH * 0.8, 150, false, 'opponent', aiLevel));
-            
-            resizeCanvas();
-            if (gameLoopId) clearInterval(gameLoopId);
-            gameLoopId = setInterval(update, 1000/60);
-            draw();
-        }
+    // Check for King Death (Game End)
+    const oppKing = gameState.opponent.towers.find(t => t.isKing);
+    const plyrKing = gameState.player.towers.find(t => t.isKing);
+
+    if (!oppKing) return endGame("Grammatical Victory!");
+    if (!plyrKing) return endGame("Deconstructed!");
+    
+    draw();
+}
+
+function actuallyStartGame(bonusJuice = false) {
+    if (!QUESTIONS_DATABASE.includes(EXTENDED_QUESTIONS[0])) QUESTIONS_DATABASE.push(...EXTENDED_QUESTIONS);
+    
+    Object.values(screens).forEach(s => s.classList.add('hidden'));
+    gameContainer.style.display = 'block';
+    playerUiPanel.style.display = 'flex';
+    emotePanel.style.display = 'flex';
+    gameOverMessage.style.display = 'none';
+    
+    resetGameState();
+    
+    // FIX: Explicitly set gold to 0 so it can be added to during the match
+    gameState.player.goldEarnedThisMatch = 0; 
+    
+    if(bonusJuice) gameState.player.juice++;
+
+    // AI Scaling Factor (1.0 to 2.5) based on player wins
+    gameState.difficultyFactor = Math.min(2.5, 1 + (playerData.wins / 8));
+
+    const playerDeckCards = playerData.deck.map(id => { 
+        const cardData = playerData.cards.find(c => c.id === id); 
+        return { ...[...ALL_CARDS, ...SPAWNED_CARDS].find(c => c.id === id), ...cardData }; 
+    });
+    gameState.player.gameDeck = shuffle(playerDeckCards);
+    for (let i = 0; i < HAND_SIZE; i++) drawCard('player');
+    gameState.player.handKey++;
+    
+    const aiLevel = Math.max(1, Math.floor(1 + (playerData.wins / 3)));
+
+    // Setup Towers
+    gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
+    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
+    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
+    
+    gameState.opponent.gameDeck = shuffle([...ALL_CARDS].map(c => ({...c, level: aiLevel})));
+    for (let i = 0; i < HAND_SIZE; i++) drawCard('opponent');
+    
+    gameState.opponent.towers.push(new Tower(ARENA_WIDTH / 2, 60, true, 'opponent', aiLevel));
+    gameState.opponent.towers.push(new Tower(ARENA_WIDTH * 0.2, 150, false, 'opponent', aiLevel));
+    gameState.opponent.towers.push(new Tower(ARENA_WIDTH * 0.8, 150, false, 'opponent', aiLevel));
+    
+    resizeCanvas();
+    if (gameLoopId) clearInterval(gameLoopId);
+    gameLoopId = setInterval(update, 1000/60);
+    draw();
+}
 
 function opponentAI() {
             const opp = gameState.opponent;
@@ -1545,56 +1679,33 @@ function opponentAI() {
                 opp.playCooldown = Math.max(20, (120 + Math.random() * 40) / diff);
             }
         }
-function update() {
-            if (gameState.gameOver) return;
-            gameState.gameTimer -= 1/60;
-            if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
-
-            if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
-            const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
-            gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
-            gameState.opponent.juice = Math.min(JUICE_MAX, gameState.opponent.juice + regen);
-
-            opponentAI();
-
-            [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.update());
-
-            // --- CLASH ROYALE: DEATH RATTLE SPLITTING ---
-            const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
-            deadUnits.forEach(u => {
-                if (u.card.id === 11) { // If Gerund Golem dies
-                    for(let i=0; i<2; i++) {
-                        const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
-                        mini.deployTimer = 0; // Spawn minis instantly
-                        gameState[u.owner].units.push(mini);
-                    }
-                }
-            });
-
-            gameState.player.units = gameState.player.units.filter(u => u.health > 0);
-            gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
-            gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
-            gameState.effects = gameState.effects.filter(e => e.duration > 0);
-            gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
-            gameState.particles = gameState.particles.filter(p => p.duration > 0);
-
-            if (gameState.opponent.towers.find(t => t.isKing).health <= 0) endGame("Grammatical Victory!");
-            if (gameState.player.towers.find(t => t.isKing).health <= 0) endGame("Deconstructed!");
-            
-            draw();
-        }
 
         // --- UI & Player Data ---
-        function getArenaTheme(wins) {
-            if (wins >= 10) { // Volcanic Verb Arena
-                return { grass1: '#742a2a', grass2: '#993535', path: 'rgba(50, 50, 50, 0.6)', river: '#f97316', bridge: '#444', bridgeStroke: '#111' };
-            }
-            if (wins >= 5) { // Spooky Library Arena
-                return { grass1: '#4a044e', grass2: '#581c87', path: 'rgba(100, 100, 100, 0.3)', river: '#a855f7', bridge: '#6b7280', bridgeStroke: '#374151' };
-            }
-            // Grassland Arena
-            return { grass1: '#42946e', grass2: '#38a169', path: 'rgba(139, 69, 19, 0.4)', river: '#4299e1', bridge: '#a0522d', bridgeStroke: '#663d19' };
-        }
+function getArenaTheme(wins) {
+    if (wins >= 10) { // Volcanic Verb Arena
+        return { 
+            grass1: '#2d0a0a', grass2: '#4a0f0f', 
+            path: 'rgba(255, 69, 0, 0.2)', 
+            river: '#ff4500', // Lava River
+            bridge: '#1a1a1a', bridgeStroke: '#ff0000' 
+        };
+    }
+    if (wins >= 5) { // Spooky Library Arena
+        return { 
+            grass1: '#1e1b4b', grass2: '#312e81', 
+            path: 'rgba(139, 92, 246, 0.2)', 
+            river: '#4c1d95', // Ink River
+            bridge: '#1e293b', bridgeStroke: '#8b5cf6' 
+        };
+    }
+    // Grassland Arena
+    return { 
+        grass1: '#064e3b', grass2: '#065f46', 
+        path: 'rgba(251, 191, 36, 0.1)', 
+        river: '#0ea5e9', // Blue River
+        bridge: '#78350f', bridgeStroke: '#fbbf24' 
+    };
+}
         function showScreen(screenName) { 
             Object.values(screens).forEach(s => s.classList.add('hidden')); 
             screens[screenName].classList.remove('hidden');
@@ -1612,121 +1723,101 @@ function update() {
             if(screenName==='shop') renderShopScreen();
         }
 function renderInstructions() {
-            instructionsContent.innerHTML = `
-                <div class="text-center mb-8">
-                    <h2 class="bangers-font text-5xl text-yellow-400 drop-shadow-lg">SYNTAX FIELD MANUAL</h2>
-                    <p class="text-blue-400 text-sm tracking-[0.3em] font-bold">GRADE 8 LINGUISTIC PROTOCOLS</p>
+    instructionsContent.innerHTML = `
+        <div class="space-y-8">
+            <div class="text-center">
+                <h2 class="bangers-font text-5xl text-yellow-400 drop-shadow-lg">SYNTAX FIELD MANUAL</h2>
+                <p class="text-blue-300 font-bold tracking-widest mt-2">HOW TO SURVIVE THE GAUNTLET</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-6 rounded-3xl border-l-4 border-yellow-500">
+                    <h3 class="bangers-font text-2xl text-white mb-2">🏆 THE MISSION</h3>
+                    <p class="text-gray-300 text-sm">Deploy units to destroy the opponent's <b>King Tower</b>. Use your "Grammar Juice" (Pink Bar) to fuel your attacks. If the timer runs out, the player with the most towers standing wins!</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
-                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-orange-500">
-                        <h3 class="bangers-font text-2xl text-white mb-2 flex items-center gap-2">🛡️ UNIT TYPES</h3>
-                        <p class="text-gray-300 text-xs leading-relaxed">
-                            • <span class="text-orange-400 font-bold">NOUNS:</span> The core of your sentence. High HP, reliable damage.
-                            <br>• <span class="text-purple-400 font-bold">VERBS:</span> Actions that change the board. Fast and explosive.
-                            <br>• <span class="text-blue-400 font-bold">ADJECTIVES:</span> Modifiers that shield your troops.
-                        </p>
-                    </div>
-
-                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-pink-500">
-                        <h3 class="bangers-font text-2xl text-white mb-2 flex items-center gap-2">🎭 VERB MOODS</h3>
-                        <p class="text-gray-300 text-xs leading-relaxed">
-                            • <span class="text-pink-300 font-bold">SUBJUNCTIVE:</span> Conditional spells that trigger massive shields.
-                            <br>• <span class="text-pink-300 font-bold">INDICATIVE:</span> Direct, high-damage physical attacks.
-                            <br>• <span class="text-pink-300 font-bold">IMPERATIVE:</span> Commands the board with knockback effects.
-                        </p>
-                    </div>
-
-                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-yellow-500">
-                        <h3 class="bangers-font text-2xl text-white mb-2 flex items-center gap-2">📢 VOICE & TONE</h3>
-                        <p class="text-gray-300 text-xs leading-relaxed">
-                            • <span class="text-yellow-400 font-bold">ACTIVE VOICE:</span> Units attack faster and more directly.
-                            <br>• <span class="text-yellow-400 font-bold">PASSIVE VOICE:</span> Towers defend with higher resistance.
-                        </p>
-                    </div>
-
-                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-green-500">
-                        <h3 class="bangers-font text-2xl text-white mb-2 flex items-center gap-2">⚡ NEURAL SYNERGY</h3>
-                        <p class="text-gray-300 text-xs leading-relaxed">
-                            Deploying an <span class="text-blue-300">Adjective</span> immediately followed by a <span class="text-orange-400">Noun</span> grants that unit a 150HP "Descriptive Shield."
-                        </p>
-                    </div>
+                <div class="glass-panel p-6 rounded-3xl border-l-4 border-blue-500">
+                    <h3 class="bangers-font text-2xl text-white mb-2">⚔️ DEPLOYMENT</h3>
+                    <p class="text-gray-300 text-sm">Drag cards from your hand directly onto the battlefield. <b>Troops</b> must be placed on your side of the river. <b>Spells</b> can be dropped anywhere, but require answering a Grammar Link question!</p>
                 </div>
-            `;
-        }
+
+                <div class="glass-panel p-6 rounded-3xl border-l-4 border-pink-500">
+                    <h3 class="bangers-font text-2xl text-white mb-2">🧬 SYNTAX SYNERGY</h3>
+                    <p class="text-gray-300 text-sm">Combine parts of speech for bonus power! Drop a <b>Noun</b> immediately after an <b>Adjective</b> to grant that unit a "Descriptive Shield."</p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-3xl border-l-4 border-green-500">
+                    <h3 class="bangers-font text-2xl text-white mb-2">📖 THE LEXICON</h3>
+                    <p class="text-gray-300 text-sm">Visit <b>My Lexicon</b> to upgrade your cards. Collect duplicate cards from chests to increase their level, HP, and Damage.</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
         function savePlayerData() {
             localStorage.setItem('grammarGauntletData', JSON.stringify(playerData));
         }
 function loadPlayerData() {
-            const savedData = localStorage.getItem('grammarGauntletData');
-            if (savedData) {
-                playerData = JSON.parse(savedData);
-            } else {
-                 playerData = {
-                    gold: 0,
-                    cards: [],
-                    deck: [],
-                    wins: 0,
-                    // ADDED: Initialize these to 0
-                    stats: { towersDestroyed: 0, spellsCast: 0, troopsDeployed: 0, correctAnswers: 0, wrongAnswers: 0 },
-                    achievements: [],
-                    dailyQuests: { lastLogin: null, quests: [] },
-                    activeMasteries: []
-                };
-            }
-            // SAFETY CHECK: Ensure every stat exists even for old save files
-            if (!playerData.stats) playerData.stats = {};
-            playerData.stats.towersDestroyed = playerData.stats.towersDestroyed || 0;
-            playerData.stats.spellsCast = playerData.stats.spellsCast || 0;
-            playerData.stats.troopsDeployed = playerData.stats.troopsDeployed || 0;
-            playerData.stats.correctAnswers = playerData.stats.correctAnswers || 0;
-            playerData.stats.wrongAnswers = playerData.stats.wrongAnswers || 0;
-            
-            if (!playerData.achievements) playerData.achievements = [];
-            // ... rest of your load logic
-            if (!playerData.dailyQuests) playerData.dailyQuests = { lastLogin: null, quests: [] };
-            if (!playerData.chests) playerData.chests = [];
-            if (!playerData.activeMasteries) playerData.activeMasteries = [];
-            if (!playerData.shop) playerData.shop = { lastRefresh: null, items: [] };
-            playerData.maxChestSlots = 4;
+    const savedData = localStorage.getItem('grammarGauntletData');
+    if (savedData) {
+        playerData = JSON.parse(savedData);
+    } else {
+        // --- NEW PLAYER INITIALIZATION ---
+        playerData = {
+            gold: 250, 
+            cards: [],
+            deck: [0, 1, 10], 
+            wins: 0,
+            stats: { towersDestroyed: 0, spellsCast: 0, troopsDeployed: 0, correctAnswers: 0, wrongAnswers: 0 },
+            achievements: [],
+            chests: [],
+            activeMasteries: [],
+            tutorialComplete: false,
+            maxChestSlots: 4,
+            shop: { lastRefresh: null, items: [] } // FIX: Added shop for new players
+        };
+    }
 
+    // --- SAFETY CHECKS FOR EXISTING SAVES ---
+    if (!playerData.stats) playerData.stats = {};
+    playerData.stats.correctAnswers = playerData.stats.correctAnswers || 0;
+    playerData.stats.wrongAnswers = playerData.stats.wrongAnswers || 0;
+    playerData.stats.towersDestroyed = playerData.stats.towersDestroyed || 0;
+    playerData.stats.spellsCast = playerData.stats.spellsCast || 0;
+    playerData.stats.troopsDeployed = playerData.stats.troopsDeployed || 0;
+    
+    // FIX: Shop Object Safety Check (Prevents the crash you saw)
+    if (!playerData.shop) {
+        playerData.shop = { lastRefresh: null, items: [] };
+    }
 
-            if (playerData.cards.length < ALL_CARDS.length) {
-                ALL_CARDS.forEach(c => {
-                    if (!playerData.cards.find(pc => pc.id === c.id)) {
-                         const isUnlocked = c.unlockCost === 0;
-                         playerData.cards.push({ id: c.id, level: 1, unlocked: isUnlocked, count: 0 });
-                    }
-                });
-            }
-            playerData.cards.forEach(c => {
-                if(c.count === undefined) c.count = 0;
-            });
-           
-            // --- Deck Validation ---
-            const unlockedCardIds = playerData.cards.filter(c => c.unlocked).map(c => c.id);
-            // First, remove any cards from the deck that are no longer unlocked.
-            let validDeck = playerData.deck.filter(id => unlockedCardIds.includes(id));
+    if (playerData.maxChestSlots === undefined) {
+        playerData.maxChestSlots = 4;
+    }
 
-            // If the deck is now too short (or was empty), fill it with other available unlocked cards.
-            if (validDeck.length < 6) {
-                const availableToadd = unlockedCardIds.filter(id => !validDeck.includes(id));
-                while(validDeck.length < 6 && availableToadd.length > 0) {
-                    validDeck.push(availableToadd.shift());
-                }
-            }
-            // Final assignment, ensuring it's not over 6 cards.
-            playerData.deck = validDeck.slice(0, 6);
-
-
-            if (playerData.deck.length > 6) {
-                playerData.deck = playerData.deck.slice(0, 6);
-            }
-            if (playerData.wins === undefined) {
-                playerData.wins = 0;
-            }
-            savePlayerData();
+    // Ensure all cards exist in collection and starters are unlocked
+    ALL_CARDS.forEach(c => {
+        let existing = playerData.cards.find(pc => pc.id === c.id);
+        if (!existing) {
+            const isStarter = [0, 1, 10].includes(c.id);
+            playerData.cards.push({ id: c.id, level: 1, unlocked: isStarter, count: isStarter ? 5 : 0 });
         }
+    });
+
+    if (playerData.deck.length === 0) {
+        playerData.deck = [0, 1, 10];
+    }
+
+    if (playerData.tutorialComplete === undefined) {
+        playerData.tutorialComplete = false;
+    }
+
+    savePlayerData();
+
+    if (!playerData.tutorialComplete) {
+        setTimeout(showTutorial, 1000); 
+    }
+}
 function renderDeckScreen() {
     document.getElementById('gold-display').textContent = playerData.gold;
     const battleDeckContainer = document.getElementById('battle-deck-container');
@@ -1888,18 +1979,22 @@ function generateNewShopItems() {
             });
         }
 
-        function buyShopItem(item) {
-            if (item.purchased || playerData.gold < item.cost) return;
+function buyShopItem(item) {
+    if (item.purchased || (playerData.gold < item.cost && !item.isFree)) return;
 
-            playerData.gold -= item.cost;
-            const cardInCollection = playerData.cards.find(c => c.id === item.cardId);
-            if (cardInCollection) {
-                cardInCollection.count += item.quantity;
-            }
-            item.purchased = true;
-            savePlayerData();
-            renderShopScreen();
-        }
+    playerData.gold -= item.cost;
+    const cardInCollection = playerData.cards.find(c => c.id === item.cardId);
+    
+    if (cardInCollection) {
+        cardInCollection.count += item.quantity;
+        // FIX: Mark as unlocked so it shows up in the Word Hoard/Lexicon
+        cardInCollection.unlocked = true; 
+    }
+    
+    item.purchased = true;
+    savePlayerData();
+    renderShopScreen();
+}
 
         function getAllUnlockedMasteries() {
             const unlocked = [];
@@ -1998,105 +2093,104 @@ function createCardElement(card, size = 'large') {
 
 function showCardInfoModal(card) {
     const playerDataCard = playerData.cards.find(c => c.id === card.id);
-    if (!playerDataCard) return; // Safety check
+    if (!playerDataCard) return;
 
     const isUnlocked = playerDataCard.unlocked;
-    const currentLevel = playerDataCard.level; // USE THIS instead of card.level
-    
-    const masteryAbilities = {
-        0: "Royal Decree: Spawns 2 Rubble units upon defeat.",
-        11: "Infinitive Loop: Heals 5% HP every 3 seconds.",
-        35: "Final Command: Stuns ALL enemies for 1.5 seconds."
-    };
-
-    const masteryText = currentLevel === 13 ? 
-        `<div class="mt-2 p-2 bg-yellow-500/20 border border-yellow-500 rounded text-yellow-400 text-xs font-bold uppercase tracking-tighter">
-            ✨ MASTERY UNLOCKED: ${masteryAbilities[card.id] || "Grammatical Perfection"}
-        </div>` : 
-        `<div class="mt-2 text-gray-500 text-[10px] uppercase">Level 13 unlocks Mastery Ability</div>`;
-
-    // Correct stat scaling calculation
+    const currentLevel = playerDataCard.level;
     const scale = Math.pow(1.1, currentLevel - 1);
-    const nextScale = Math.pow(1.1, currentLevel);
     
-    let statsHtml = `<p class="my-2">${card.info}</p>`;
-   
-    if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
-        const currentHealth = Math.round(card.health * scale);
-        const nextHealth = Math.round(card.health * nextScale);
-        const healthBonus = nextHealth - currentHealth;
-        const currentDamage = Math.round(card.damage * scale);
-        const nextDamage = Math.round(card.damage * nextScale);
-        const damageBonus = nextDamage - currentDamage;
-
+    let statsHtml = `<p class="my-2">${card.info || "A powerful linguistic unit."}</p>`;
+    if (card.health) {
         statsHtml += `
             <div class="text-left grid grid-cols-2 gap-x-4 gap-y-1">
-                <span>HP:</span> <span class="font-bold">${currentHealth} ${currentLevel < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${healthBonus})</span>` : ''}</span>
-                <span>Damage:</span> <span class="font-bold">${currentDamage} ${currentLevel < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${damageBonus})</span>` : ''}</span>
+                <span>HP:</span> <span class="font-bold">${Math.round(card.health * scale)}</span>
+                <span>Damage:</span> <span class="font-bold">${Math.round(card.damage * scale)}</span>
             </div>`;
     }
 
-    let actionButtonsHtml = '';
-    if (isUnlocked) {
-        if(currentLevel < MAX_CARD_LEVEL) {
-            const req = UPGRADE_COSTS[currentLevel];
-            const canAfford = (playerData.gold >= req.gold && playerDataCard.count >= req.cards);
-            actionButtonsHtml += `
-                <button id="upgrade-btn" class="btn-wood w-full" ${canAfford ? '' : 'disabled'}>
-                    REVISE (💰 ${req.gold})
-                </button>`;
-        }
-        const isInDeck = playerData.deck.includes(card.id);
-        actionButtonsHtml += `<button id="deck-action-btn" class="btn-wood w-full mt-2">${isInDeck ? 'EDIT OUT' : 'DRAFT INTO SENTENCE'}</button>`;
-    } else {
-        actionButtonsHtml = `<button id="unlock-btn" class="btn-wood w-full" ${playerData.gold >= card.unlockCost ? '' : 'disabled'}>ACQUIRE (💰${card.unlockCost})</button>`;
-    }
-
+    // Modal UI Construction
     cardInfoContent.innerHTML = `
         <div class="flex flex-col text-center text-white">
             <h2 class="bangers-font text-3xl text-yellow-400">${card.name}</h2>
             <div class="text-6xl my-2">${card.emoji}</div>
             <p class="text-lg">Level ${currentLevel}</p>
-            ${masteryText} <div class="text-sm mt-4">${statsHtml}</div>
-            <div class="mt-4 space-y-2">${actionButtonsHtml}</div>
+            <div class="text-sm mt-4">${statsHtml}</div>
+            <div id="modal-button-container" class="mt-4 space-y-2">
+                </div>
         </div>`;
 
-    // Re-bind listeners after updating HTML
-    const upgradeBtn = document.getElementById('upgrade-btn');
-    if (upgradeBtn) {
-        upgradeBtn.onclick = () => {
-            const req = UPGRADE_COSTS[playerDataCard.level];
-            if (playerData.gold >= req.gold && playerDataCard.count >= req.cards) {
-                playerData.gold -= req.gold;
-                playerDataCard.count -= req.cards;
-                playerDataCard.level++;
+    const btnContainer = document.getElementById('modal-button-container');
+
+    if (!isUnlocked) {
+        // --- THE UNLOCK BUTTON ---
+        const unlockBtn = document.createElement('button');
+        unlockBtn.className = `btn-wood w-full ${playerData.gold < card.unlockCost ? 'opacity-50' : ''}`;
+        unlockBtn.innerHTML = `ACQUIRE (💰 ${card.unlockCost})`;
+        unlockBtn.onclick = () => {
+            if (playerData.gold >= card.unlockCost) {
+                playerData.gold -= card.unlockCost;
+                playerDataCard.unlocked = true;
                 savePlayerData();
                 renderDeckScreen();
-                showCardInfoModal(card); 
+                showCardInfoModal(card);
             }
         };
-    }
-
-    document.getElementById('deck-action-btn').onclick = () => {
-        if (playerData.deck.includes(card.id)) {
-            playerData.deck = playerData.deck.filter(id => id !== card.id);
-        } else if (playerData.deck.length < 6) {
-            playerData.deck.push(card.id);
+        btnContainer.appendChild(unlockBtn);
+    } else {
+        // --- THE UPGRADE BUTTON ---
+        if (currentLevel < MAX_CARD_LEVEL) {
+            const req = UPGRADE_COSTS[currentLevel];
+            const canAfford = (playerData.gold >= req.gold && playerDataCard.count >= req.cards);
+            const upgradeBtn = document.createElement('button');
+            upgradeBtn.className = `btn-wood w-full ${!canAfford ? 'opacity-50' : ''}`;
+            upgradeBtn.innerHTML = `REVISE (💰 ${req.gold} | 🃏 ${playerDataCard.count}/${req.cards})`;
+            upgradeBtn.onclick = () => {
+                if (canAfford) {
+                    playerData.gold -= req.gold;
+                    playerDataCard.count -= req.cards;
+                    playerDataCard.level++;
+                    savePlayerData();
+                    renderDeckScreen();
+                    showCardInfoModal(card);
+                }
+            };
+            btnContainer.appendChild(upgradeBtn);
         }
-        savePlayerData();
-        renderDeckScreen();
-        showCardInfoModal(card);
-    };
+
+        // --- THE DRAFT BUTTON ---
+        const isInDeck = playerData.deck.includes(card.id);
+        const draftBtn = document.createElement('button');
+        draftBtn.className = `btn-wood w-full ${isInDeck ? 'bg-red-700' : 'bg-blue-700'}`;
+        draftBtn.textContent = isInDeck ? 'REMOVE FROM DECK' : 'DRAFT TO DECK';
+        draftBtn.onclick = () => {
+            if (isInDeck) {
+                playerData.deck = playerData.deck.filter(id => id !== card.id);
+            } else if (playerData.deck.length < 6) {
+                playerData.deck.push(card.id);
+            }
+            savePlayerData();
+            renderDeckScreen();
+            showCardInfoModal(card);
+        };
+        btnContainer.appendChild(draftBtn);
+    }
 
     cardInfoModal.style.display = 'flex';
 }
 
-        function playCard(card, x, y, owner, modifier) {
+function playCard(card, x, y, owner, modifier) {
             const playerState = gameState[owner];
+            
+            // FIX: Trigger Visual Juice Flash for the player
             if (owner === 'player') {
+                juiceFlash.style.opacity = '1';
+                setTimeout(() => { juiceFlash.style.opacity = '0'; }, 100);
+                
                 if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') playerData.stats.troopsDeployed++;
                 if (card.category === 'Spell') playerData.stats.spellsCast++;
             }
+            
+            // ... (rest of the existing playCard logic remains the same)
             const scale = Math.pow(1.1, card.level - 1);
             if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
                  // Synergy Check
@@ -2310,46 +2404,46 @@ function showCardInfoModal(card) {
             if(ps.gameDeck.length > 0) ps.hand.push(ps.gameDeck.pop());
         }
 function renderPlayerHand() {
-            playerHandElement.innerHTML = '';
-            const championOnField = gameState.player.units.some(unit => unit.card.category === 'Champion');
-            
-            gameState.player.hand.forEach((card, index) => {
-                const cardEl = document.createElement('div');
-                // Standardized card styling to match Lexicon
-                cardEl.className = `card relative overflow-hidden flex flex-col items-center justify-center p-1 bg-white rounded-lg shadow-lg cursor-pointer transition-transform hover:scale-105`;
-                cardEl.style.width = "85px"; // Fits the side panel perfectly
-                cardEl.dataset.cardIndex = index;
+    playerHandElement.innerHTML = '';
+    const championOnField = gameState.player.units.some(unit => unit.card.category === 'Champion');
+    
+    gameState.player.hand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        // FIX: Smaller width (70px) to prevent bottom UI overlap
+        cardEl.className = `card relative overflow-hidden flex flex-col items-center justify-center p-1 bg-white rounded-lg shadow-lg cursor-pointer transition-transform hover:scale-105`;
+        cardEl.style.width = "70px"; 
+        cardEl.dataset.cardIndex = index;
 
-                const canAfford = gameState.player.juice >= card.cost;
-                const canPlayChampion = !(card.category === 'Champion' && championOnField);
-                
-                if (!canAfford || !canPlayChampion) {
-                    cardEl.classList.add('filter', 'grayscale', 'opacity-60');
-                }
-
-                const typeColor = card.category === 'Troop' ? 'text-orange-500' : 'text-purple-500';
-                
-                cardEl.innerHTML = `
-                    <div class="bangers-font text-[9px] leading-tight text-gray-700 text-center mb-1">${card.name}</div>
-                    <div class="text-3xl my-1">${card.emoji}</div>
-                    <div class="bangers-font text-[8px] ${typeColor} uppercase">${card.type}</div>
-                    <div class="absolute top-0.5 left-0.5 bg-pink-500 text-white text-[11px] w-5 h-5 rounded-full flex items-center justify-center border border-white shadow-sm font-bold">${card.cost}</div>
-                `;
-                playerHandElement.appendChild(cardEl);
-            });
-
-            // Update Next Card Preview
-            const nextCard = gameState.player.gameDeck[gameState.player.gameDeck.length - 1];
-            if (nextCard) {
-                const typeColor = nextCard.category === 'Troop' ? 'text-orange-400' : 'text-purple-400';
-                nextCardPreview.innerHTML = `
-                    <span class="text-blue-300 text-[10px] bangers-font uppercase mb-1">Next:</span>
-                    <div class="text-2xl">${nextCard.emoji}</div>
-                    <div class="absolute top-1 right-1 bg-pink-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">${nextCard.cost}</div>
-                `;
-                nextCardPreview.className = "w-20 h-20 border-2 border-blue-400/50 rounded-xl mb-2 flex flex-col items-center justify-center text-center relative bg-slate-900/80";
-            }
+        const canAfford = gameState.player.juice >= card.cost;
+        const canPlayChampion = !(card.category === 'Champion' && championOnField);
+        
+        if (!canAfford || !canPlayChampion) {
+            cardEl.classList.add('filter', 'grayscale', 'opacity-60');
         }
+
+        const typeColor = card.category === 'Troop' ? 'text-orange-500' : 'text-purple-500';
+        
+        // FIX: Scaled down internal text and emoji for the new smaller size
+        cardEl.innerHTML = `
+            <div class="bangers-font text-[8px] leading-tight text-gray-700 text-center mb-1">${card.name}</div>
+            <div class="text-2xl my-0.5">${card.emoji}</div>
+            <div class="bangers-font text-[7px] ${typeColor} uppercase">${card.type}</div>
+            <div class="absolute top-0.5 left-0.5 bg-pink-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm font-bold">${card.cost}</div>
+        `;
+        playerHandElement.appendChild(cardEl);
+    });
+
+    // Update Next Card Preview to be smaller as well
+    const nextCard = gameState.player.gameDeck[gameState.player.gameDeck.length - 1];
+    if (nextCard) {
+        nextCardPreview.innerHTML = `
+            <span class="text-blue-300 text-[9px] bangers-font uppercase mb-1">Next:</span>
+            <div class="text-xl">${nextCard.emoji}</div>
+            <div class="absolute top-1 right-1 bg-pink-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white shadow-sm">${nextCard.cost}</div>
+        `;
+        nextCardPreview.className = "w-16 h-16 border-2 border-blue-400/50 rounded-xl mb-2 flex flex-col items-center justify-center text-center relative bg-slate-900/80";
+    }
+}
         function showWarmupQuestion() {
             const questionData = QUESTIONS_DATABASE[Math.floor(Math.random() * QUESTIONS_DATABASE.length)];
             warmupQuestionText.innerHTML = questionData.q.replace('<...>', '<span class="text-yellow-400 font-bold">_____</span>');
@@ -2695,48 +2789,65 @@ function renderStatsScreen() {
             }
         }
 
-// --- REACTIVE AI EMOTES ---
+// --- REACTIVE AI EMOTES (Opposite Reaction Logic) ---
         emotePanel.addEventListener('click', (e) => {
             const button = e.target.closest('.emote-btn');
             if (button) {
-                // Show your emote
+                const playerEmote = button.dataset.emote;
+                
+                // 1. Show your emote
                 const playerKing = gameState.player.towers.find(t => t.isKing);
                 if (playerKing) {
-                    playerKing.emote = { text: button.dataset.emote, duration: 120 };
+                    playerKing.emote = { text: playerEmote, duration: 120 };
                 }
 
-                // Opponent reacts 0.5 seconds later
+                // 2. Determine "Opposite" AI reaction
+                const emoteMap = {
+                    '😂': '😠', // You laugh -> AI gets angry
+                    '😠': '😂', // You're angry -> AI laughs at you
+                    '😭': '👍', // You cry -> AI gives a sarcastic thumbs up
+                    '👍': '😭'  // You thumbs up -> AI cries (intimidated)
+                };
+
+                const aiReaction = emoteMap[playerEmote] || '😲';
+
+                // 3. Opponent reacts 0.5 seconds later
                 const opponentKing = gameState.opponent.towers.find(t => t.isKing);
                 if(opponentKing) {
                     setTimeout(() => {
-                        const reactions = ['😂', '👍', '😠', '😲'];
-                        opponentKing.emote = { text: reactions[Math.floor(Math.random()*reactions.length)], duration: 120 };
+                        opponentKing.emote = { text: aiReaction, duration: 120 };
                     }, 500);
                 }
             }
         });
        
+// FIX: Improved Dragging for Mobile (Direct from Hand)
         let dragStartHandler = (e) => {
             const cardEl = e.target.closest('.card');
             if (!cardEl || gameState.gameOver) return;
+            
             const index = parseInt(cardEl.dataset.cardIndex);
             const card = gameState.player.hand[index];
             if (!card || gameState.player.juice < card.cost) return;
 
-            // NEW CHECK: Prevent dragging a champion if one is already deployed
-            if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) {
-                return; 
-            }
+            // Prevent dragging a second champion
+            if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) return;
            
             e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
 
+            // Create the visual "Ghost" card
             const ghostEl = document.createElement('div');
             ghostEl.textContent = card.emoji;
             ghostEl.style.position = 'fixed';
             ghostEl.style.zIndex = '1000';
             ghostEl.style.pointerEvents = 'none';
             ghostEl.style.fontSize = '4rem';
-            ghostEl.style.textShadow = '2px 2px 8px rgba(0,0,0,0.7)';
+            ghostEl.style.textShadow = '2px 2px 10px rgba(0,0,0,0.8)';
+            
+            // FIX: Set initial position EXACTLY on the finger/mouse
+            ghostEl.style.left = `${touch.clientX - 25}px`;
+            ghostEl.style.top = `${touch.clientY - 25}px`;
             document.body.appendChild(ghostEl);
            
             cardEl.classList.add('opacity-50');
@@ -2747,56 +2858,51 @@ function renderStatsScreen() {
             if (!gameState.draggingCard) return;
             e.preventDefault();
             const touch = e.touches ? e.touches[0] : e;
-            gameState.draggingCard.element.style.left = `${touch.clientX - gameState.draggingCard.element.offsetWidth / 2}px`;
-            gameState.draggingCard.element.style.top = `${touch.clientY - gameState.draggingCard.element.offsetHeight / 2}px`;
+            
+            // Smoothly follow finger
+            gameState.draggingCard.element.style.left = `${touch.clientX - 25}px`;
+            gameState.draggingCard.element.style.top = `${touch.clientY - 40}px`;
             gameState.dragPos = getCanvasPos(e);
         };
        
-        let dragEndHandler = (e) => {
-            if (!gameState.draggingCard) return;
+let dragEndHandler = (e) => {
+    if (!gameState.draggingCard) return;
 
-            const { card, index, element, sourceElement } = gameState.draggingCard;
-            document.body.removeChild(element);
-            sourceElement.classList.remove('opacity-50');
+    const { card, index, element, sourceElement } = gameState.draggingCard;
+    
+    if (element && element.parentNode) {
+        document.body.removeChild(element);
+    }
+    
+    sourceElement.classList.remove('opacity-50');
 
-            const { x, y } = gameState.dragPos;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.changedTouches ? e.changedTouches[0] : e;
+    const isOverCanvas = touch.clientX > rect.left && touch.clientX < rect.right && 
+                        touch.clientY > rect.top && touch.clientY < rect.bottom;
 
-            const rect = canvas.getBoundingClientRect();
-            const touch = e.changedTouches ? e.changedTouches[0] : e;
-            const isOverCanvas = touch.clientX > rect.left && touch.clientX < rect.right && touch.clientY > rect.top && touch.clientY < rect.bottom;
+    if (isOverCanvas) {
+        const { x, y } = gameState.dragPos;
+        const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
 
-            if (isOverCanvas) {
-                const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
-                 if (card.category === 'Spell' || isRepeat) {
-                    if (gameState.player.juice < card.cost) return; // Universal cost check
-
-                    if (card.id === 23) { // Special case for Prepositional Phrase Ambush - NO QUESTION
-                        gameState.player.juice -= card.cost;
-                        playCard(card, x, y, 'player');
-                        const [playedCard] = gameState.player.hand.splice(index, 1);
-                        gameState.player.discard.push(playedCard);
-                        drawCard('player');
-                        gameState.player.handKey++;
-                    } else { // All other spells have questions
-                         gameState.player.juice -= card.cost;
-                         showQuestion(card, x, y, index, isRepeat);
-                    }
-// Updated: Ground units must be placed on YOUR side (Y > 350)
-                } else if ((card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') && y > RIVER_Y) { 
-                    if (gameState.player.juice >= card.cost) {
-                        // ... existing playCard and cycle logic ...
-                        gameState.player.juice -= card.cost;
-                        playCard(card, x, y, 'player');
-                        const [playedCard] = gameState.player.hand.splice(index, 1);
-                        gameState.player.discard.push(playedCard);
-                        drawCard('player');
-                        gameState.player.handKey++;
-                    }
-                }
-            }
-           
-            gameState.draggingCard = null;
-        };
+        if (card.category === 'Spell' || isRepeat) {
+            gameState.player.juice -= card.cost;
+            showQuestion(card, x, y, index, isRepeat);
+        } else if (y > RIVER_Y) { 
+            // --- TROOP DEPLOYMENT ---
+            gameState.player.juice -= card.cost;
+            playCard(card, x, y, 'player');
+            
+            // FIX: Remove from hand and push to discard so it recycles!
+            const [playedCard] = gameState.player.hand.splice(index, 1);
+            gameState.player.discard.push(playedCard); 
+            
+            drawCard('player');
+        }
+    }
+    
+    gameState.draggingCard = null;
+};
        
         canvas.addEventListener('click', handleCanvasClick);
         playerHandElement.addEventListener('mousedown', dragStartHandler);
@@ -3073,6 +3179,41 @@ if (sortSelect) {
         uiState.deckSort = e.target.value;
         renderDeckScreen();
     });
+}
+
+function showTutorial() {
+    const tutorialSteps = [
+        { title: "Welcome, Warrior!", text: "This is Grammar Gauntlet. You will use the power of parts of speech to win battles." },
+        { title: "The Word Hoard", text: "Go to 'My Lexicon' to see your starter cards: The Noun King, the Horde, and the Peasant." },
+        { title: "Linguistic Combat", text: "Drag cards onto the field. Spells require a Grammar Check—answer correctly to unleash their power!" }
+    ];
+
+    let currentStep = 0;
+
+    function renderStep() {
+        // Use your existing confirmation modal elements
+        confirmationText.innerHTML = `
+            <h3 class="bangers-font text-2xl text-yellow-400 mb-2">${tutorialSteps[currentStep].title}</h3>
+            <p class="text-sm">${tutorialSteps[currentStep].text}</p>
+        `;
+        confirmYesBtn.textContent = currentStep === tutorialSteps.length - 1 ? "RETURN HOME" : "NEXT";
+        confirmNoBtn.classList.add('hidden'); // Hide the "No" button for the tutorial
+        
+        confirmationModal.style.display = 'flex';
+
+        confirmYesBtn.onclick = () => {
+            currentStep++;
+            if (currentStep < tutorialSteps.length) {
+                renderStep();
+            } else {
+                confirmationModal.style.display = 'none';
+                confirmNoBtn.classList.remove('hidden'); // Bring the button back for later
+                playerData.tutorialComplete = true;
+                savePlayerData();
+            }
+        };
+    }
+    renderStep();
 }
     </script>
 </body>

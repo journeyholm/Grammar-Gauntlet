@@ -22,12 +22,15 @@
 
 /* The actual purple liquid/juice */
 #juice-bar {
-    width: 100%;
-    position: absolute;
-    bottom: 0;
-    background: linear-gradient(0deg, #db2777, #ff7cf3); /* Vertical gradient for juice */
-    box-shadow: 0 0 15px #ff00e6;
-    transition: height 0.3s ease;
+    background: linear-gradient(0deg, #db2777 0%, #ff7cf3 50%, #db2777 100%);
+    background-size: 100% 200%;
+    animation: liquidFlow 3s linear infinite;
+    box-shadow: 0 0 20px #ff00e6, inset 0 0 10px rgba(255,255,255,0.5);
+}
+
+@keyframes liquidFlow {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 0% 200%; }
 }
 
 /* The shimmer effect on top of the liquid */
@@ -359,14 +362,14 @@ button, .card {
                     </div>
             </div>
 
-            <div class="w-1/3 flex flex-col gap-4">
-                <div class="glass-panel rounded-3xl p-6 flex flex-col h-full border-2 border-yellow-500/50">
+<div class="w-1/3 flex flex-col gap-4">
+                <div class="glass-panel rounded-3xl p-6 flex flex-col h-full border-2 border-yellow-500/50 overflow-hidden">
                     <h3 class="bangers-font text-2xl text-center text-white mb-4">BATTLE SENTENCE</h3>
                     
-                    <div id="battle-deck-container" class="grid grid-cols-2 gap-4 content-start">
+                    <div id="battle-deck-container" class="grid grid-cols-2 gap-4 content-start overflow-y-auto pr-2 scrollable-area flex-grow">
                         </div>
 
-                    <div class="mt-auto pt-4 border-t border-gray-600">
+                    <div class="mt-4 pt-4 border-t border-gray-600">
                         <div id="deck-stats" class="bg-black/40 p-4 rounded-2xl text-center">
                             <div class="bangers-font text-pink-400 text-sm uppercase tracking-widest">Avg. Juice Cost</div>
                             <div id="avg-juice-cost" class="text-4xl font-bold text-white">0.0</div>
@@ -564,12 +567,13 @@ const SPAWNED_CARDS = [
         ];
 
         const ALL_CARDS = [
-{ id: 0, name: 'Proper Noun King', category: 'Troop', type: 'Proper Noun', cost: 5, emoji: '👑', health: 800, damage: 75, speed: 0.6, range: 30, attackSpeed: 100, unlockCost: 0, info: 'Heavy Grammatical Weight: High HP, slow movement.' },            
-{ id: 1, name: 'Collective Noun Horde', category: 'Troop', type: 'Collective Noun', cost: 4, emoji: '👥', health: 48, damage: 12, speed: 2.0, range: 30, attackSpeed: 50, spawnCount: 5, info: 'A plural swarm representing a group noun.' },            { id: 2, name: 'Abstract Noun Ghost', category: 'Troop', type: 'Abstract Noun', cost: 3, emoji: '👻', health: 220, damage: 30, speed: 1.2, range: 35, attackSpeed: 85, isFlying: true, unlockCost: 200, info: 'A tricky unit that is hard to see.' },
-            { id: 55, name: 'Noun Suffix Swarm', category: 'Troop', type: 'Suffix', cost: 1, emoji: '🐜', health: 30, damage: 10, speed: 2.0, range: 30, attackSpeed: 60, spawnCount: 3, isFlying: false, unlockCost: 50, info: 'A trio of quick attackers.'},
+{ id: 0, name: 'Proper Noun King', category: 'Troop', type: 'Proper Noun', cost: 5, emoji: '👑', health: 950, damage: 75, speed: 0.5, range: 30, attackSpeed: 100, unlockCost: 0, info: 'Heavy Weight: High HP, slow movement.' },
+{ id: 1, name: 'Collective Noun Horde', category: 'Troop', type: 'Collective Noun', cost: 4, emoji: '👥', health: 48, damage: 12, speed: 2.0, range: 30, attackSpeed: 50, spawnCount: 5, info: 'A plural swarm representing a group.' },            
+{ id: 55, name: 'Noun Suffix Swarm', category: 'Troop', type: 'Suffix', cost: 1, emoji: '🐜', health: 60, damage: 10, speed: 2.0, range: 30, attackSpeed: 60, spawnCount: 5, isFlying: false, unlockCost: 50, info: 'Cheap swarm for defense.'},
+{ id: 2, name: 'Abstract Noun Ghost', category: 'Troop', type: 'Abstract Noun', cost: 3, emoji: '👻', health: 220, damage: 30, speed: 1.2, range: 35, attackSpeed: 85, isFlying: true, unlockCost: 200, info: 'Ethereal: Can fly over the river.' },
             { id: 56, name: 'Determiner Dart Thrower', category: 'Troop', type: 'Determiner', cost: 2, emoji: '🎯', health: 100, damage: 30, speed: 1.8, range: 130, attackSpeed: 40, isFlying: false, unlockCost: 200, info: 'A fast-attacking ranged troop.'},
-            { id: 10, name: 'Common Noun Peasant', category: 'Troop', type: 'Common Noun', cost: 2, emoji: '👨‍🌾', health: 90, damage: 18, speed: 1.6, range: 100, attackSpeed: 60, spawnCount: 2, isFlying: false, unlockCost: 100, info: 'Cheap, swarming attackers.' },
-            { id: 11, name: 'Gerund Golem', category: 'Troop', type: 'Gerund', cost: 5, emoji: '🗿', health: 1000, damage: 15, speed: 0.7, range: 30, attackSpeed: 120, isFlying: false, unlockCost: 400, info: 'A slow but tough tank.', targetsBuildings: true },
+{ id: 10, name: 'Common Noun Peasant', category: 'Troop', type: 'Common Noun', cost: 2, emoji: '👨‍🌾', health: 90, damage: 18, speed: 1.6, range: 100, attackSpeed: 60, spawnCount: 2, isFlying: false, unlockCost: 100, info: 'Standard infantry units.' },            
+{ id: 11, name: 'Gerund Golem', category: 'Troop', type: 'Gerund', cost: 6, emoji: '🗿', health: 950, damage: 15, speed: 0.7, range: 30, attackSpeed: 120, isFlying: false, unlockCost: 400, info: 'Building Targeter: Splits on death.', targetsBuildings: true },
             { id: 14, name: 'Participle Phantom', category: 'Troop', type: 'Participle', cost: 4, emoji: '🌑', health: 280, damage: 15, speed: 1.0, range: 40, attackSpeed: 60, isFlying: true, unlockCost: 400, info: 'An attacker that slows enemies.' },
             { id: 17, name: 'Absolute Phrase Juggernaut', category: 'Troop', type: 'Absolute Phrase', cost: 7, emoji: '🛡️', health: 800, damage: 60, speed: 0.9, range: 30, attackSpeed: 150, isFlying: false, unlockCost: 800, info: 'A massive troop dealing area damage.' },
             { id: 18, name: 'Intensifier Ram', category: 'Troop', type: 'Intensifier', cost: 4, emoji: '🐏', health: 350, damage: 100, speed: 2.5, range: 30, attackSpeed: 90, isFlying: false, unlockCost: 600, info: 'Charges for double damage.' },
@@ -593,8 +597,7 @@ const SPAWNED_CARDS = [
             { id: 44, name: 'Misplaced Modifier', category: 'Troop', type: 'Modifier', cost: 3, emoji: '❓', health: 250, damage: 50, speed: 1.3, range: 120, attackSpeed: 90, unlockCost: 700 },
             { id: 48, name: 'Tense Shift Trap', category: 'Spell', type: 'Tense', cost: 3, emoji: '⏳', unlockCost: 600 },
             { id: 49, name: 'Semicolon Link', category: 'Building', type: 'Punctuation', cost: 3, emoji: '🔗', health: 400, damage: 0, duration: 1200, range: 0, unlockCost: 800 },
-{ id: 3, name: 'Active Verb Fireball', category: 'Spell', type: 'Action Verb', cost: 4, emoji: '🔥', damage: 150, radius: 60, info: 'Intense Action: Deals high impact damage.' },            { id: 4, name: 'Adjective Shield', category: 'Spell', type: 'Adjective', cost: 3, emoji: '🛡️', unlockCost: 150 },
-            { id: 5, name: 'Adverb Haste', category: 'Spell', type: 'Adverb', cost: 2, emoji: '⚡', speedBoost: 2, duration: 300, radius: 70, unlockCost: 150 },
+{ id: 3, name: 'Active Verb Fireball', category: 'Spell', type: 'Action Verb', cost: 4, emoji: '🔥', damage: 150, radius: 60, info: 'Intense Action: Deals area damage.' },            { id: 5, name: 'Adverb Haste', category: 'Spell', type: 'Adverb', cost: 2, emoji: '⚡', speedBoost: 2, duration: 300, radius: 70, unlockCost: 150 },
             { id: 6, name: 'Pronoun Copy', category: 'Spell', type: 'Pronoun', cost: 2, emoji: '👥', unlockCost: 300 },
             { id: 7, name: 'Preposition Portal', category: 'Spell', type: 'Preposition', cost: 3, emoji: '🌀', unlockCost: 250 },
             { id: 8, name: 'Conjunction Chain', category: 'Spell', type: 'Conjunction', cost: 4, emoji: '⛓️', damage: 80, unlockCost: 300 },
@@ -605,8 +608,8 @@ const SPAWNED_CARDS = [
             { id: 23, name: 'Prepositional Phrase Ambush', category: 'Spell', type: 'Prepositional Phrase', cost: 3, emoji: '👥', unlockCost: 350 },
             { id: 24, name: 'Exclamatory Burst', category: 'Spell', type: 'Exclamation', cost: 3, emoji: '💥', unlockCost: 450 },
             { id: 34, name: 'Adverbial Gust', category: 'Spell', type: 'Adverb', cost: 3, emoji: '🌬️', unlockCost: 600 },
-            { id: 35, name: 'Imperative Strike', category: 'Spell', type: 'Imperative', cost: 6, emoji: '⚡', unlockCost: 1200 },
-            { id: 57, name: 'Syllable Sniper', category: 'Building', type: 'Syllable', cost: 4, emoji: '🎯', health: 400, unlockCost: 750 },
+{ id: 35, name: 'Imperative Strike', category: 'Spell', type: 'Imperative', cost: 6, emoji: '⚡', damage: 250, radius: 30, crownTowerDamageMultiplier: 0.35, info: 'Forceful command: Deals massive damage.'  },            
+{ id: 57, name: 'Syllable Sniper', category: 'Building', type: 'Syllable', cost: 4, emoji: '🎯', health: 400, unlockCost: 750 },
             { id: 15, name: 'Infinitive Tower', category: 'Building', type: 'Infinitive', cost: 5, emoji: '🏰', health: 450, unlockCost: 600 },
             { id: 20, name: 'Clause Compounder', category: 'Building', type: 'Clause', cost: 5, emoji: '🏗️', health: 500, unlockCost: 500 },
             { id: 21, name: 'Thesaurus', category: 'Building', type: 'Thesaurus', cost: 4, emoji: '📖', health: 300, unlockCost: 800 },
@@ -1093,11 +1096,13 @@ class Tower {
                 }
                 this.target = closestEnemy;
             }
-            takeDamage(amount) {
-                this.health -= amount;
-                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, amount));
-                gameState.shakeIntensity = 8; // Trigger Screen Shake
-                this.isActivated = true; // Damage wakes up the tower
+takeDamage(amount, isSpell = false) {
+                // REDUCED DAMAGE TO TOWERS FROM SPELLS (35% damage)
+                const finalDamage = isSpell ? Math.round(amount * 0.35) : amount;
+                this.health -= finalDamage;
+                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, finalDamage));
+                gameState.shakeIntensity = 8;
+                this.isActivated = true; 
             }
             attack(target) { gameState.projectiles.push(new Projectile(this, target)); }
 draw() {
@@ -1140,9 +1145,9 @@ draw() {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW, 6);
                 ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d'; 
-                ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * (this.health / this.maxHealth), 6);
-            }
-}
+ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * (this.health / this.maxHealth), 6);
+            } // This closes the draw() method
+        }
 
 class Unit {
             constructor(card, x, y, owner, level = 1) {
@@ -1322,12 +1327,16 @@ function resetGameState() {
 
 function draw() {
             if (!canvas.parentElement || canvas.parentElement.style.display === 'none') return;
+            
+            // --- CRITICAL FIX: RESET TRANSFORM & CLEAR ---
+            ctx.setTransform(1, 0, 0, 1, 0, 0); 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             const scaleX = canvas.width / ARENA_WIDTH;
             const scaleY = canvas.height / ARENA_HEIGHT;
             ctx.save();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // --- CLASH ROYALE: SCREEN SHAKE ---
+            // Screen Shake Logic
             if (gameState.shakeIntensity > 0) {
                 const sx = (Math.random() - 0.5) * gameState.shakeIntensity;
                 const sy = (Math.random() - 0.5) * gameState.shakeIntensity;
@@ -1353,38 +1362,95 @@ function draw() {
             ctx.fillRect(ARENA_WIDTH * 0.15, RIVER_Y - 25, 60, 50); 
             ctx.fillRect(ARENA_WIDTH * 0.73, RIVER_Y - 25, 60, 50);
 
-            // Render Game Objects
-            [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.draw());
+            // Render Game Objects with Safety Check
+            const drawables = [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles];
+            drawables.forEach(o => { if(o && o.draw) o.draw(); });
 
-            // --- CLASH ROYALE: CROWN UI ---
+            // UI: Crowns (Score)
             const pCrowns = 3 - gameState.player.towers.length;
             const oCrowns = 3 - gameState.opponent.towers.length;
             ctx.font = "bold 24px Bangers"; ctx.fillStyle = "#fbbf24";
-            ctx.textAlign = "left"; ctx.fillText(`👑 ${oCrowns}`, 20, 40); 
-            ctx.textAlign = "right"; ctx.fillText(`👑 ${pCrowns}`, ARENA_WIDTH - 20, 40); 
+            ctx.textAlign = "left"; ctx.fillText(`👑 ${oCrowns}`, 20, 80); 
+            ctx.textAlign = "right"; ctx.fillText(`👑 ${pCrowns}`, ARENA_WIDTH - 20, 80); 
 
-            // UI: Timer
+// --- UI: HOME/QUIT BUTTON ---
+            const hb = HOME_BUTTON;
+            ctx.save(); // 1. Save the current drawing state
+            
+            ctx.fillStyle = "#ef4444"; // Bright red
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(hb.x - hb.width/2, hb.y - hb.height/2, hb.width, hb.height, [8]);
+            ctx.fill(); 
+            ctx.stroke();
+
+            ctx.font = "bold 14px Inter";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("QUIT", hb.x, hb.y);
+
+            ctx.restore(); // 2. Restore the drawing state so other UI isn't affected
+
+            // Timer
             const minutes = Math.floor(gameState.gameTimer / 60);
             const seconds = Math.floor(gameState.gameTimer % 60);
             ctx.font = "bold 32px Bangers";
             ctx.textAlign = 'center';
-            
-            if (gameState.isDoubleJuice) {
-                ctx.fillStyle = '#ff00e6';
-                ctx.shadowBlur = 10 + Math.sin(Date.now() / 200) * 10;
-                ctx.shadowColor = "#ff00e6";
-            } else {
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowBlur = 0;
-            }
+            ctx.fillStyle = gameState.isDoubleJuice ? '#ff00e6' : '#ffffff';
             ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, ARENA_WIDTH/2, 40);
 
             ctx.restore();
             
-            // Side Panel UI Updates
             juiceBar.style.height = `${(gameState.player.juice / JUICE_MAX) * 100}%`;
             juiceText.textContent = Math.floor(gameState.player.juice);
             renderPlayerHand();
+        }
+
+function update() {
+            if (gameState.gameOver) return;
+            
+            // --- NEW: COUNT DOWN THE NEURAL LOCKOUT ---
+            if (gameState.player.neuralLockout > 0) gameState.player.neuralLockout--;
+
+            gameState.gameTimer -= 1/60;
+            // ... (the rest of your existing code continues below)
+            if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
+
+            if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
+            const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
+            gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
+            gameState.opponent.juice = Math.min(JUICE_MAX, gameState.opponent.juice + regen);
+
+            opponentAI();
+
+            [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.update());
+
+            // --- CLASH ROYALE: GERUND GOLEM SPLIT LOGIC ---
+            const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
+            deadUnits.forEach(u => {
+                if (u.card.id === 11) { // 11 is the Gerund Golem ID
+                    for(let i=0; i<2; i++) {
+                        // Spawns 2 Suffix Swarms (ID 55) at the death location
+                        const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
+                        mini.deployTimer = 0; // Mini units spawn instantly
+                        gameState[u.owner].units.push(mini);
+                    }
+                }
+            });
+
+            gameState.player.units = gameState.player.units.filter(u => u.health > 0);
+            gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
+            gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
+            gameState.effects = gameState.effects.filter(e => e.duration > 0);
+            gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
+            gameState.particles = gameState.particles.filter(p => p.duration > 0);
+
+            if (gameState.opponent.towers.find(t => t.isKing).health <= 0) endGame("Grammatical Victory!");
+            if (gameState.player.towers.find(t => t.isKing).health <= 0) endGame("Deconstructed!");
+            
+            draw();
         }
 
         function actuallyStartGame(bonusJuice = false) {
@@ -1430,49 +1496,56 @@ function draw() {
             draw();
         }
 
-        function opponentAI() {
+function opponentAI() {
             const opp = gameState.opponent;
+            const player = gameState.player;
             const diff = gameState.difficultyFactor;
+            
             if (--opp.playCooldown > 0) return;
 
+            // AI LOGIC: Check for enemy clusters to play Spells
+            const playerCluster = player.units.filter(u => u.y < RIVER_Y + 100);
             const playableCards = opp.hand.filter(c => opp.juice >= c.cost);
-            if (playableCards.length === 0) {
-                opp.playCooldown = Math.max(15, 40 / diff);
-                return;
+
+            let action = null;
+
+            // 1. SPELL REACTION: Use Fireball if 3+ player units are nearby
+            if (playerCluster.length >= 3) {
+                const fireball = playableCards.find(c => c.category === 'Spell');
+                if (fireball) {
+                    action = { card: fireball, x: playerCluster[0].x, y: playerCluster[0].y };
+                }
             }
 
-            let potentialPlays = [];
-            const leftThreats = gameState.player.units.filter(u => u.x < ARENA_WIDTH/2 && u.y < RIVER_Y).length;
-            const targetLaneX = leftThreats >= 1 ? ARENA_WIDTH * 0.25 : ARENA_WIDTH * 0.75;
+            // 2. DEFENSE: React to units crossing the bridge
+            const incomingThreats = player.units.filter(u => u.y < RIVER_Y);
+            if (!action && incomingThreats.length > 0) {
+                const defCard = playableCards.sort((a,b) => a.cost - b.cost)[0]; 
+                if (defCard) action = { card: defCard, x: incomingThreats[0].x, y: 150 };
+            } 
 
-            playableCards.forEach(card => {
-                if (card.category === 'Troop' || card.category === 'Building') {
-                    if (card.health > 500 && opp.juice > 8) {
-                        potentialPlays.push({ card, x: targetLaneX, y: 80, score: 50 });
-                    }
-                    potentialPlays.push({ card, x: targetLaneX, y: RIVER_Y - 40, score: 30 });
-                }
-            });
+            // 3. OFFENSE: Banking Juice for a "Combo Push" (Tank at back + Support)
+            if (!action && opp.juice >= 9.5) {
+                const laneX = Math.random() > 0.5 ? ARENA_WIDTH * 0.25 : ARENA_WIDTH * 0.75;
+                const tank = playableCards.find(c => c.health > 500);
+                const support = playableCards.find(c => c.health <= 500 && c.category === 'Troop');
+                
+                // Professional Move: Drop Tank at the VERY back to build up support juice
+                action = tank ? { card: tank, x: laneX, y: 50 } : { card: support, x: laneX, y: 150 };
+            }
 
-            let bestPlay = potentialPlays.sort((a,b) => b.score - a.score)[0];
-            const threshold = Math.max(15, 45 - (diff * 10));
-
-            if (bestPlay && bestPlay.score > threshold) {
-                opp.juice -= bestPlay.card.cost;
-                const cardIndex = opp.hand.findIndex(c => c.id === bestPlay.card.id);
-                if (cardIndex !== -1) {
-                    const [playedCard] = opp.hand.splice(cardIndex, 1);
-                    opp.discard.push(playedCard);
-                    drawCard('opponent');
-                    playCard(playedCard, bestPlay.x, bestPlay.y, 'opponent');
-                    opp.playCooldown = Math.max(20, (100 + Math.random() * 50) / diff);
-                }
-            } else {
-                opp.playCooldown = 30 / diff;
+            if (action) {
+                opp.juice -= action.card.cost;
+                const cardIndex = opp.hand.findIndex(c => c.id === action.card.id);
+                const [playedCard] = opp.hand.splice(cardIndex, 1);
+                opp.discard.push(playedCard);
+                drawCard('opponent');
+                playCard(playedCard, action.x, action.y, 'opponent');
+                // Bot intelligence scaling
+                opp.playCooldown = Math.max(20, (120 + Math.random() * 40) / diff);
             }
         }
-
-        function update() {
+function update() {
             if (gameState.gameOver) return;
             gameState.gameTimer -= 1/60;
             if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
@@ -1485,6 +1558,18 @@ function draw() {
             opponentAI();
 
             [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => o.update());
+
+            // --- CLASH ROYALE: DEATH RATTLE SPLITTING ---
+            const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
+            deadUnits.forEach(u => {
+                if (u.card.id === 11) { // If Gerund Golem dies
+                    for(let i=0; i<2; i++) {
+                        const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
+                        mini.deployTimer = 0; // Spawn minis instantly
+                        gameState[u.owner].units.push(mini);
+                    }
+                }
+            });
 
             gameState.player.units = gameState.player.units.filter(u => u.health > 0);
             gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
@@ -1913,9 +1998,27 @@ function createCardElement(card, size = 'large') {
 
 function showCardInfoModal(card) {
     const playerDataCard = playerData.cards.find(c => c.id === card.id);
+    if (!playerDataCard) return; // Safety check
+
     const isUnlocked = playerDataCard.unlocked;
-    const scale = Math.pow(1.1, card.level - 1);
-    const nextScale = Math.pow(1.1, card.level);
+    const currentLevel = playerDataCard.level; // USE THIS instead of card.level
+    
+    const masteryAbilities = {
+        0: "Royal Decree: Spawns 2 Rubble units upon defeat.",
+        11: "Infinitive Loop: Heals 5% HP every 3 seconds.",
+        35: "Final Command: Stuns ALL enemies for 1.5 seconds."
+    };
+
+    const masteryText = currentLevel === 13 ? 
+        `<div class="mt-2 p-2 bg-yellow-500/20 border border-yellow-500 rounded text-yellow-400 text-xs font-bold uppercase tracking-tighter">
+            ✨ MASTERY UNLOCKED: ${masteryAbilities[card.id] || "Grammatical Perfection"}
+        </div>` : 
+        `<div class="mt-2 text-gray-500 text-[10px] uppercase">Level 13 unlocks Mastery Ability</div>`;
+
+    // Correct stat scaling calculation
+    const scale = Math.pow(1.1, currentLevel - 1);
+    const nextScale = Math.pow(1.1, currentLevel);
+    
     let statsHtml = `<p class="my-2">${card.info}</p>`;
    
     if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
@@ -1925,126 +2028,66 @@ function showCardInfoModal(card) {
         const currentDamage = Math.round(card.damage * scale);
         const nextDamage = Math.round(card.damage * nextScale);
         const damageBonus = nextDamage - currentDamage;
+
         statsHtml += `
             <div class="text-left grid grid-cols-2 gap-x-4 gap-y-1">
-                <span>HP:</span> <span class="font-bold">${currentHealth} ${card.level < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${healthBonus})</span>` : ''}</span>
-                <span>Damage:</span> <span class="font-bold">${currentDamage} ${card.level < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${damageBonus})</span>` : ''}</span>
-                <span>Hit Speed:</span> <span class="font-bold">${(card.attackSpeed / 60).toFixed(1)}s</span>
-                <span>Speed:</span> <span class="font-bold">${card.speed}</span>
-                <span>Targets:</span> <span class="font-bold">${card.isFlying ? 'Air & Ground' : 'Ground'}</span>
+                <span>HP:</span> <span class="font-bold">${currentHealth} ${currentLevel < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${healthBonus})</span>` : ''}</span>
+                <span>Damage:</span> <span class="font-bold">${currentDamage} ${currentLevel < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${damageBonus})</span>` : ''}</span>
             </div>`;
-        if (card.category === 'Champion') {
-            statsHtml += `<h4 class="bangers-font text-purple-400 text-lg mt-3">Champion Ability</h4>`;
-            let abilityDesc = `<strong>${card.ability.type}</strong> (Cost: ${card.abilityCost} Juice)`;
-            if (card.ability.type === 'Emphatic Strike') {
-                abilityDesc += `<br>Deals ${card.ability.damage} damage to a single target.`;
-            } else if (card.ability.type === 'Clause Connector') {
-                abilityDesc += `<br>Shields allies in a ${card.ability.radius} radius with ${card.ability.shieldHealth} HP.`;
-            } else if (card.ability.type === 'Trailing Off') {
-                abilityDesc += `<br>Teleports behind the furthest enemy unit.`;
-            }
-            statsHtml += `<p class="text-left text-sm">${abilityDesc}</p>`;
-        }
-    } else if (card.category === 'Spell') {
-         statsHtml += `<div class="text-left grid grid-cols-2 gap-x-4 gap-y-1">`;
-         if(card.damage) {
-             const currentDamage = Math.round(card.damage * scale);
-             const nextDamage = Math.round(card.damage * nextScale);
-             const damageBonus = nextDamage - currentDamage;
-             statsHtml += `<span>Damage:</span> <span class="font-bold">${currentDamage} ${card.level < MAX_CARD_LEVEL ? `<span class="text-green-400">(+${damageBonus})</span>` : ''}</span>`;
-         }
-         if(card.radius) statsHtml += `<span>Radius:</span> <span class="font-bold">${card.radius}</span>`;
-         if(card.duration) statsHtml += `<span>Duration:</span> <span class="font-bold">${(card.duration / 60).toFixed(1)}s</span>`;
-         statsHtml += `</div>`;
     }
 
     let actionButtonsHtml = '';
     if (isUnlocked) {
-        if(card.level < MAX_CARD_LEVEL) {
-            const req = UPGRADE_COSTS[playerDataCard.level];
-            const canAffordGold = playerData.gold >= req.gold;
-            const hasEnoughCards = playerDataCard.count >= req.cards;
-            const cardProgress = Math.min(100, (playerDataCard.count / req.cards) * 100);
-
+        if(currentLevel < MAX_CARD_LEVEL) {
+            const req = UPGRADE_COSTS[currentLevel];
+            const canAfford = (playerData.gold >= req.gold && playerDataCard.count >= req.cards);
             actionButtonsHtml += `
-                <div class="w-full bg-gray-600 rounded-full h-4 my-2">
-                    <div class="bg-yellow-400 h-4 rounded-full text-center text-black text-xs font-bold" style="width: ${cardProgress}%">${playerDataCard.count}/${req.cards}</div>
-                </div>
-                <button id="upgrade-btn" class="btn-wood w-full" ${canAffordGold && hasEnoughCards ? '' : 'disabled'}>
-                    Revise (💰 ${req.gold})
+                <button id="upgrade-btn" class="btn-wood w-full" ${canAfford ? '' : 'disabled'}>
+                    REVISE (💰 ${req.gold})
                 </button>`;
-        } else {
-            actionButtonsHtml = `<div class="bangers-font text-2xl text-green-400">Max Level!</div>`;
         }
-
         const isInDeck = playerData.deck.includes(card.id);
-        const deckIsFull = playerData.deck.length >= 6;
-        actionButtonsHtml += isInDeck ? 
-            `<button id="deck-action-btn" class="btn-wood w-full bg-red-800 mt-2">Edit Out</button>` :
-            `<button id="deck-action-btn" class="btn-wood w-full mt-2" ${deckIsFull ? 'disabled' : ''}>Draft into Sentence</button>`;
+        actionButtonsHtml += `<button id="deck-action-btn" class="btn-wood w-full mt-2">${isInDeck ? 'EDIT OUT' : 'DRAFT INTO SENTENCE'}</button>`;
     } else {
-        const canAffordUnlock = playerData.gold >= card.unlockCost;
-        actionButtonsHtml = `<button id="unlock-btn" class="btn-wood w-full" ${canAffordUnlock ? '' : 'disabled'}>Acquire (💰${card.unlockCost})</button>`;
+        actionButtonsHtml = `<button id="unlock-btn" class="btn-wood w-full" ${playerData.gold >= card.unlockCost ? '' : 'disabled'}>ACQUIRE (💰${card.unlockCost})</button>`;
     }
 
     cardInfoContent.innerHTML = `
         <div class="flex flex-col text-center text-white">
             <h2 class="bangers-font text-3xl text-yellow-400">${card.name}</h2>
             <div class="text-6xl my-2">${card.emoji}</div>
-            <p class="text-lg">Level ${playerDataCard.level}</p>
-            <div class="text-sm">${statsHtml}</div>
+            <p class="text-lg">Level ${currentLevel}</p>
+            ${masteryText} <div class="text-sm mt-4">${statsHtml}</div>
             <div class="mt-4 space-y-2">${actionButtonsHtml}</div>
         </div>`;
 
-    // Attach Listeners
-    if (isUnlocked) {
-        const upgradeBtn = document.getElementById('upgrade-btn');
-        if (upgradeBtn) {
-            upgradeBtn.onclick = () => {
-                const req = UPGRADE_COSTS[playerDataCard.level];
-                if (playerData.gold >= req.gold && playerDataCard.count >= req.cards) {
-                    playerData.gold -= req.gold;
-                    playerDataCard.count -= req.cards;
-                    playerDataCard.level++;
-                    
-                    const cardElements = document.querySelectorAll('.card');
-                    cardElements.forEach(el => {
-                        if (el.querySelector('.bangers-font')?.textContent === card.name) {
-                            el.classList.add('level-up-anim');
-                            setTimeout(() => el.classList.remove('level-up-anim'), 600);
-                        }
-                    });
-
-                    savePlayerData();
-                    renderDeckScreen();
-                    showCardInfoModal(card); 
-                }
-            };
-        }
-        document.getElementById('deck-action-btn').onclick = () => {
-            if (playerData.deck.includes(card.id)) {
-                playerData.deck = playerData.deck.filter(id => id !== card.id);
-            } else if (playerData.deck.length < 6) {
-                playerData.deck.push(card.id);
+    // Re-bind listeners after updating HTML
+    const upgradeBtn = document.getElementById('upgrade-btn');
+    if (upgradeBtn) {
+        upgradeBtn.onclick = () => {
+            const req = UPGRADE_COSTS[playerDataCard.level];
+            if (playerData.gold >= req.gold && playerDataCard.count >= req.cards) {
+                playerData.gold -= req.gold;
+                playerDataCard.count -= req.cards;
+                playerDataCard.level++;
+                savePlayerData();
+                renderDeckScreen();
+                showCardInfoModal(card); 
             }
-            savePlayerData();
-            renderDeckScreen();
-            showCardInfoModal(card);
         };
-    } else {
-        const unlockBtn = document.getElementById('unlock-btn');
-        if (unlockBtn) {
-            unlockBtn.onclick = () => {
-                if (playerData.gold >= card.unlockCost) {
-                    playerData.gold -= card.unlockCost;
-                    playerDataCard.unlocked = true;
-                    savePlayerData();
-                    renderDeckScreen();
-                    showCardInfoModal(playerDataCard);
-                }
-            };
-        }
     }
+
+    document.getElementById('deck-action-btn').onclick = () => {
+        if (playerData.deck.includes(card.id)) {
+            playerData.deck = playerData.deck.filter(id => id !== card.id);
+        } else if (playerData.deck.length < 6) {
+            playerData.deck.push(card.id);
+        }
+        savePlayerData();
+        renderDeckScreen();
+        showCardInfoModal(card);
+    };
+
     cardInfoModal.style.display = 'flex';
 }
 
@@ -2365,20 +2408,16 @@ function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
                 // Record a correct answer
                 playerData.stats.correctAnswers = (playerData.stats.correctAnswers || 0) + 1;
                 playCard(card, x, y, 'player', modifier);
-            } else { 
+} else { 
                 // Record a wrong answer
                 playerData.stats.wrongAnswers = (playerData.stats.wrongAnswers || 0) + 1;
                 
-                // Refund Juice logic
-                if(isRepeat) {
-                    gameState.player.juice += card.cost; // Full refund on repeat fail
-                } else {
-                    gameState.player.juice += card.cost / 2; // Refund half
-                }
+                // NEURAL LOCKOUT: Refund less juice and add a penalty
+                gameState.player.juice += card.cost / 4; // Only 25% refund
+                gameState.player.neuralLockout = 180; // 3 second cooldown (60 fps * 3)
 
-                // Show feedback for the mistake
                 if (sentence) {
-                    feedbackText.innerHTML = `The correct answer was: <strong class="text-yellow-400">"${sentence.a[0]}"</strong>. <br><br> ${sentence.exp}`;
+                    feedbackText.innerHTML = `NEURAL LINK SEVERED! <br> Correct answer: <strong class="text-yellow-400">"${sentence.a[0]}"</strong>.`;
                     feedbackModal.style.display = 'flex';
                 }
             }
@@ -2573,11 +2612,14 @@ function renderStatsScreen() {
             if (gameState.gameOver) return;
             const pos = getCanvasPos(e);
            
-            // Home button check
+
+// Home button check
             const hb = HOME_BUTTON;
             if (pos.x > hb.x - hb.width / 2 && pos.x < hb.x + hb.width / 2 &&
                 pos.y > hb.y - hb.height / 2 && pos.y < hb.y + hb.height / 2) {
-                returnToHome();
+                showConfirmationModal("Deconstruct this session and return to library?", () => {
+                    returnToHome();
+                });
                 return; 
             }
 

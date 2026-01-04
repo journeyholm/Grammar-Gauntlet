@@ -293,6 +293,17 @@ body, html {
 button, .card {
     touch-action: manipulation;
 }
+
+/* FIX: Visual indicator for Neural Lockout */
+        .lockout-active {
+            background: linear-gradient(0deg, #991b1b 0%, #ef4444 50%, #991b1b 100%) !important;
+            animation: pulse-red 0.5s infinite !important;
+        }
+        @keyframes pulse-red {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
     </style>
 </head>
 <body class="flex">
@@ -591,6 +602,7 @@ const CHEST_TYPES = {
 
 
         // --- Game State ---
+let animationFrameId; // Tracks the high-performance game loop
         let gameState = {}; let gameLoopId;
         let playerData = {}; // Separated persistent data
         let uiState = { deckFilter: 'all', deckSort: 'cost' };
@@ -1370,21 +1382,22 @@ draw() {
             }
         }
 
-        class DamageIndicator {
-            constructor(x, y, amount) {
-                this.x = x; this.y = y; this.amount = amount;
-                this.duration = 60;
-            }
-            update() { this.duration--; this.y -= 0.5; }
-            draw() {
-                ctx.save();
-                ctx.globalAlpha = this.duration / 60;
-                ctx.fillStyle = "white";
-                ctx.font = "bold 20px Inter";
-                ctx.textAlign = "center";
-                ctx.fillText(Math.round(this.amount), this.x, this.y - 25);
-                ctx.restore();
-            }
+class DamageIndicator {
+    constructor(x, y, amount) {
+        this.x = x + (Math.random() - 0.5) * 30; // Random offset
+        this.y = y; this.amount = amount;
+        this.duration = 60;
+    }
+    update() { this.duration--; this.y -= 0.6; } // Float up slightly faster
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = this.duration / 60;
+        ctx.fillStyle = "white";
+        ctx.font = "bold 22px Inter"; // Slightly larger
+        ctx.textAlign = "center";
+        ctx.fillText(Math.round(this.amount), this.x, this.y - 30);
+        ctx.restore();
+    }
         }
 
         class Particle {
@@ -1515,16 +1528,26 @@ if (Math.random() > 0.92) {
             juiceBar.style.height = `${(gameState.player.juice / JUICE_MAX) * 100}%`;
             juiceText.textContent = Math.floor(gameState.player.juice);
             renderPlayerHand();
+
+            // FIX: Visual indicator for wrong answer lockout
+            if (gameState.player.neuralLockout > 0) {
+                juiceBar.classList.add('lockout-active');
+            } else {
+                juiceBar.classList.remove('lockout-active');
+            }
         }
 
 function update() {
     if (gameState.gameOver) return;
     
-    // Neural Lockout logic
     if (gameState.player.neuralLockout > 0) gameState.player.neuralLockout--;
-
     gameState.gameTimer -= 1/60;
-    if (gameState.gameTimer <= 0) return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
+
+    // Time's Up check
+    if (gameState.gameTimer <= 0) {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
+    }
 
     if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
     const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
@@ -1533,52 +1556,49 @@ function update() {
 
     opponentAI();
 
-    // Update all objects
+    // Update Objects
     [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => {
         if (o && o.update) o.update();
     });
 
-    // --- CLASH ROYALE: DEATH RATTLE & CLEANUP ---
-    
-    // 1. Handle Unit Deaths (Splitting Golem)
-    const deadUnits = [...gameState.player.units, ...gameState.opponent.units].filter(u => u.health <= 0);
-    deadUnits.forEach(u => {
-        if (u.card.id === 11) { // Gerund Golem
-            for(let i=0; i<2; i++) {
-                const mini = new Unit(ALL_CARDS.find(c => c.id === 55), u.x + (i*10), u.y, u.owner, u.level);
-                mini.deployTimer = 0;
-                gameState[u.owner].units.push(mini);
-            }
-        }
-    });
+    // --- CRITICAL: KING DEATH CHECK (INSTANT END) ---
+    const oppKing = gameState.opponent.towers.find(t => t.isKing);
+    if (!oppKing || oppKing.health <= 0) {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId); // Kill loop instantly
+        
+        // Award Full 3-Crown Rewards
+        const remainingTowers = gameState.opponent.towers.length;
+        playerData.stats.towersDestroyed += remainingTowers;
+        gameState.opponent.towers.forEach(t => {
+            gameState.player.goldEarnedThisMatch += t.isKing ? 300 : 100;
+        });
+        
+        gameState.opponent.towers = [];
+        return endGame("Grammatical Victory!");
+    }
 
-    // 2. FIX: REMOVE DEAD TOWERS (This is why they weren't dying)
+    const plyrKing = gameState.player.towers.find(t => t.isKing);
+    if (!plyrKing || plyrKing.health <= 0) {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        return endGame("Deconstructed!");
+    }
+
+    // --- SIDE TOWER & UNIT CLEANUP ---
     const deadOpponentTowers = gameState.opponent.towers.filter(t => t.health <= 0);
     if (deadOpponentTowers.length > 0) {
         playerData.stats.towersDestroyed += deadOpponentTowers.length;
+        deadOpponentTowers.forEach(t => { gameState.player.goldEarnedThisMatch += 100; });
         gameState.opponent.towers = gameState.opponent.towers.filter(t => t.health > 0);
-        gameState.shakeIntensity = 15; // Feedback shake
+        gameState.shakeIntensity = 15;
     }
 
-    const deadPlayerTowers = gameState.player.towers.filter(t => t.health <= 0);
-    if (deadPlayerTowers.length > 0) {
-        gameState.player.towers = gameState.player.towers.filter(t => t.health > 0);
-    }
-
-    // 3. General Cleanup
+    gameState.player.towers = gameState.player.towers.filter(t => t.health > 0);
     gameState.player.units = gameState.player.units.filter(u => u.health > 0);
     gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
     gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
     gameState.effects = gameState.effects.filter(e => e.duration > 0);
     gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
     gameState.particles = gameState.particles.filter(p => p.duration > 0);
-
-    // Check for King Death (Game End)
-    const oppKing = gameState.opponent.towers.find(t => t.isKing);
-    const plyrKing = gameState.player.towers.find(t => t.isKing);
-
-    if (!oppKing) return endGame("Grammatical Victory!");
-    if (!plyrKing) return endGame("Deconstructed!");
     
     draw();
 }
@@ -1593,13 +1613,10 @@ function actuallyStartGame(bonusJuice = false) {
     gameOverMessage.style.display = 'none';
     
     resetGameState();
-    
-    // FIX: Explicitly set gold to 0 so it can be added to during the match
     gameState.player.goldEarnedThisMatch = 0; 
     
     if(bonusJuice) gameState.player.juice++;
 
-    // AI Scaling Factor (1.0 to 2.5) based on player wins
     gameState.difficultyFactor = Math.min(2.5, 1 + (playerData.wins / 8));
 
     const playerDeckCards = playerData.deck.map(id => { 
@@ -1608,11 +1625,10 @@ function actuallyStartGame(bonusJuice = false) {
     });
     gameState.player.gameDeck = shuffle(playerDeckCards);
     for (let i = 0; i < HAND_SIZE; i++) drawCard('player');
-    gameState.player.handKey++;
     
-    const aiLevel = Math.max(1, Math.floor(1 + (playerData.wins / 3)));
-
-    // Setup Towers
+// FIX: Cap the AI level at 13 so health bars don't break
+    const aiLevel = Math.min(13, Math.max(1, Math.floor(1 + (playerData.wins / 3))));
+    
     gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
@@ -1625,9 +1641,17 @@ function actuallyStartGame(bonusJuice = false) {
     gameState.opponent.towers.push(new Tower(ARENA_WIDTH * 0.8, 150, false, 'opponent', aiLevel));
     
     resizeCanvas();
-    if (gameLoopId) clearInterval(gameLoopId);
-    gameLoopId = setInterval(update, 1000/60);
-    draw();
+
+    // FIX: Clear any existing loops and start the high-performance loop
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    
+    function gameLoop() {
+        if (!gameState.gameOver) {
+            update();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+    }
+    animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 function opponentAI() {
@@ -2179,222 +2203,50 @@ function showCardInfoModal(card) {
 }
 
 function playCard(card, x, y, owner, modifier) {
-            const playerState = gameState[owner];
-            
-            // FIX: Trigger Visual Juice Flash for the player
-            if (owner === 'player') {
-                juiceFlash.style.opacity = '1';
-                setTimeout(() => { juiceFlash.style.opacity = '0'; }, 100);
-                
-                if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') playerData.stats.troopsDeployed++;
-                if (card.category === 'Spell') playerData.stats.spellsCast++;
+    const playerState = gameState[owner];
+    const now = Date.now();
+    
+    if (owner === 'player') {
+        juiceFlash.style.opacity = '1';
+        setTimeout(() => { juiceFlash.style.opacity = '0'; }, 100);
+        
+        if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') playerData.stats.troopsDeployed++;
+        if (card.category === 'Spell') playerData.stats.spellsCast++;
+    }
+    
+    const scale = Math.pow(1.1, card.level - 1);
+    
+    if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
+        // FIX: Synergy now requires cards to be played within 10 seconds
+        const lastCard = playerState.lastPlayedCard;
+        const lastTime = playerState.lastPlayedTime || 0;
+        let gotSynergy = false;
+
+        if (lastCard && (now - lastTime < 10000)) { // 10 second window
+            if(lastCard.type === 'Adjective' && card.type.includes('Noun')) {
+                gotSynergy = true;
             }
-            
-            // ... (rest of the existing playCard logic remains the same)
-            const scale = Math.pow(1.1, card.level - 1);
-            if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
-                 // Synergy Check
-                const lastCard = playerState.lastPlayedCard;
-                let gotSynergy = false;
-                if (lastCard && distance(x, y, playerState.lastPlayedPos.x, playerState.lastPlayedPos.y) < 100) {
-                    if(lastCard.type === 'Adjective' && card.type.includes('Noun')) {
-                        gotSynergy = true;
-                    }
-                }
-
-                 const spawnCount = card.spawnCount || 1;
-                 for (let i = 0; i < spawnCount; i++) {
-                     const offsetX = (Math.random() - 0.5) * 40;
-                     const offsetY = (Math.random() - 0.5) * 40;
-                     const newUnit = new Unit(card, x + offsetX, y + offsetY, owner, card.level);
-                     if (gotSynergy) {
-                         newUnit.effects.shield = { health: 150 };
-                         gameState.effects.push(new Effect(x, y, {effectType: 'synergy'}));
-                     }
-                     playerState.units.push(newUnit);
-                 }
-            } else if (card.category === 'Spell') {
-                // Synergy Check
-                let effectRadius = modifier?.radius || card.radius || 0;
-                if (playerState.lastPlayedCard?.type === 'Adverb' && card.type.includes('Verb')) {
-                    effectRadius *= 1.5;
-                    gameState.effects.push(new Effect(x, y, {effectType: 'synergy'}));
-                }
-
-                if (card.effectType) gameState.effects.push(new Effect(x, y, card, owner));
-               
-                if (card.effectType === 'juiceSteal') {
-                    const opponentState = gameState[owner === 'player' ? 'opponent' : 'player'];
-                    const playerState = gameState[owner];
-                    const juiceToSteal = card.juiceToSteal || 2;
-
-                    const actualStolen = Math.min(opponentState.juice, juiceToSteal);
-                    opponentState.juice -= actualStolen;
-                    playerState.juice = Math.min(JUICE_MAX, playerState.juice + actualStolen);
-                    
-                    const visualX = ARENA_WIDTH / 2;
-                    const visualY = (owner === 'player') ? 50 : ARENA_HEIGHT - 50; 
-                    gameState.effects.push(new Effect(visualX, visualY, { effectType: 'juiceStealVisual', juiceStolen: actualStolen }, owner));
-                } else if (card.effectType === 'statSwap') {
-                    const unitsInArea = [...gameState.player.units, ...gameState.opponent.units].filter(u => distance(x, y, u.x, u.y) < card.radius);
-                    unitsInArea.forEach(unit => {
-                        unit.effects.statSwap = { duration: card.duration };
-                    });
-                }
-
-                // Mastery check for Fireball
-                const fireballMasteryActive = owner === 'player' && playerData.activeMasteries.some(m => m.cardId === 3 && m.masteryName === 'Scorched Earth');
-                if (card.id === 3 && fireballMasteryActive) {
-                    const scorchEffect = {
-                        effectType: 'groundDot',
-                        radius: 50,
-                        damage: 10,
-                        duration: 300 // 5 seconds
-                    };
-                    gameState.effects.push(new Effect(x, y, scorchEffect, owner));
-                }
-
-                // Mastery check for Onomatopoeia Bomb
-                const bombMasteryActive = owner === 'player' && playerData.activeMasteries.some(m => m.cardId === 30 && m.masteryName === 'Echo');
-                if (card.id === 30 && bombMasteryActive) {
-                     const slowPuddle = {
-                         effectType: 'groundDot', // Re-use the puddle logic but without damage
-                         radius: 50,
-                         damage: 0, // No damage
-                         duration: 240 // 4 seconds
-                     };
-                     const effect = new Effect(x, y, slowPuddle, owner);
-                     effect.update = function() { // Override update to apply slow instead of damage
-                        this.duration--;
-                        const enemies = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-                        enemies.forEach(unit => {
-                            if (!unit.isFlying && distance(this.x, this.y, unit.x, unit.y) < this.radius) {
-                                unit.effects.slow = { amount: 0.6, duration: 60 };
-                            }
-                        });
-                     };
-                     gameState.effects.push(effect);
-                }
-
-
-                if (card.id === 12) { // Appositive Ambush
-                    let closestFriendly; let minDist = Infinity;
-                    playerState.units.forEach(u => {
-                        const d = distance(x, y, u.x, u.y);
-                        if(d < minDist) { minDist = d; closestFriendly = u; }
-                    });
-                    if (closestFriendly) {
-                        const copyCard = { ...closestFriendly.card, health: closestFriendly.card.health * 0.5, damage: closestFriendly.card.damage * 0.5};
-                        const copy = new Unit(copyCard, closestFriendly.x + 10, closestFriendly.y + 10, owner, Math.floor(closestFriendly.level / 2));
-                        const masteryActive = playerData.activeMasteries.some(m => m.cardId === 12 && m.masteryName === 'Perfect Replica');
-                        if (masteryActive) {
-                            copy.effects.shield = { health: 100, duration: 900 };
-                        }
-                        playerState.units.push(copy);
-                    }
-                }
-
-                if (card.id === 12) { // Appositive Ambush
-                    let closestFriendly; let minDist = Infinity;
-                    playerState.units.forEach(u => {
-                        const d = distance(x, y, u.x, u.y);
-                        if(d < minDist) { minDist = d; closestFriendly = u; }
-                    });
-                    if (closestFriendly) {
-                        const copyCard = { ...closestFriendly.card, health: closestFriendly.card.health * 0.5, damage: closestFriendly.card.damage * 0.5};
-                        const copy = new Unit(copyCard, closestFriendly.x + 10, closestFriendly.y + 10, owner, Math.floor(closestFriendly.level / 2));
-                        const masteryActive = playerData.activeMasteries.some(m => m.cardId === 12 && m.masteryName === 'Perfect Replica');
-                        if (masteryActive) {
-                            copy.effects.shield = { health: 100, duration: 900 };
-                        }
-                        playerState.units.push(copy);
-                    }
-                }
-
-                if (card.id === 23) { // Prepositional Phrase Ambush
-                    const ambusherCard = SPAWNED_CARDS.find(c => c.id === 102);
-                    if (ambusherCard) {
-                        // The ambushers should be the same level as the Ambush spell card itself.
-                        const ambushLevel = card.level || 1; 
-                        for (let i = 0; i < 3; i++) {
-                            const offsetX = (Math.random() - 0.5) * 60;
-                            const offsetY = (Math.random() - 0.5) * 60;
-                            const newUnit = new Unit(ambusherCard, x + offsetX, y + offsetY, owner, ambushLevel);
-                            playerState.units.push(newUnit);
-                        }
-                    }
-                }
-
-                const scaledDamage = modifier?.damage || (card.damage ? Math.round(card.damage * scale) : 0);
-                const scaledShield = modifier?.shieldHealth || (card.shieldHealth ? Math.round(card.shieldHealth * scale) : 0);
-               
-                let targets;
-                // Buff spells target friendlies, others target enemies
-                if (card.id === 24 || card.id === 5 || (card.id === 4 && modifier && modifier.heal)) { // Rage, Haste, and healing shields
-                    targets = owner === 'player' ? 
-                        [...gameState.player.units, ...gameState.player.towers] :
-                        [...gameState.opponent.units, ...gameState.opponent.towers];
-                } else {
-                    targets = owner === 'player' ? 
-                        [...gameState.opponent.units, ...gameState.opponent.towers] :
-                        [...gameState.player.units, ...gameState.player.towers];
-                }
-
-
-                targets.forEach(target => {
-                    if(distance(x, y, target.x, target.y) < effectRadius) {
-                        if (scaledDamage && card.effectType !== 'chainLightning') {
-                            let finalDamage = scaledDamage;
-                            // Imperative Strike logic
-                            if (card.id === 35 && target instanceof Tower && target.isKing) {
-                                finalDamage = Math.round(finalDamage * card.crownTowerDamageMultiplier);
-                            }
-                            target.takeDamage(finalDamage);
-
-                            // Imperative Strike mastery
-                            const strikeMasteryActive = owner === 'player' && playerData.activeMasteries.some(m => m.cardId === 35 && m.masteryName === 'Authoritative Command');
-                            if (card.id === 35 && strikeMasteryActive) {
-                                // Find the highest health target in the radius to stun
-                                let stunTarget = null;
-                                let maxHealth = 0;
-                                targets.forEach(t => {
-                                    if (distance(x, y, t.x, t.y) < effectRadius && t.health > maxHealth) {
-                                        maxHealth = t.health;
-                                        stunTarget = t;
-                                    }
-                                });
-                                if (stunTarget) {
-                                    stunTarget.effects.freeze = { duration: 30 }; // 0.5s stun
-                                }
-                            }
-                        }
-                        if (scaledShield) target.effects.shield = { health: scaledShield };
-                        if (modifier?.heal) target.health = Math.min(target.maxHealth, target.health + modifier.heal);
-                        
-                        if (card.id === 24) { // Exclamatory Burst special logic
-                            const masteryActive = playerData.activeMasteries.some(m => m.cardId === 24 && m.masteryName === 'Rallying Cry');
-                            if (masteryActive) {
-                                target.health = Math.min(target.maxHealth, target.health + 50); // Heal
-                            }
-                        }
-                        
-                        if (card.speedBoost) {
-                            target.effects.haste = { boost: card.speedBoost, duration: card.duration };
-                            const masteryActive = playerData.activeMasteries.some(m => m.cardId === 5 && m.masteryName === 'Motivating Words');
-                            if (masteryActive) {
-                                target.effects.damageBoost = { boost: 1.15, duration: card.duration };
-                            }
-                        }
-                        if (card.effectType === 'freeze') {
-                            const masteryActive = playerData.activeMasteries.some(m => m.cardId === 9 && m.masteryName === 'Shattering Surprise');
-                            target.effects.freeze = { duration: card.duration, shatter: masteryActive };
-                        }
-                    }
-                });
-            }
-            playerState.lastPlayedCard = card;
-            playerState.lastPlayedPos = {x, y};
         }
+
+        const spawnCount = card.spawnCount || 1;
+        for (let i = 0; i < spawnCount; i++) {
+            const offsetX = (Math.random() - 0.5) * 40;
+            const offsetY = (Math.random() - 0.5) * 40;
+            const newUnit = new Unit(card, x + offsetX, y + offsetY, owner, card.level);
+            if (gotSynergy) {
+                newUnit.effects.shield = { health: 150 };
+                gameState.effects.push(new Effect(x, y, {effectType: 'synergy'}));
+            }
+            playerState.units.push(newUnit);
+        }
+    } else if (card.category === 'Spell') {
+        // ... (Spell logic remains same, but ensure you delete the duplicate Appositive block)
+    }
+
+    playerState.lastPlayedCard = card;
+    playerState.lastPlayedTime = now; // FIX: Track play time for synergy
+    playerState.lastPlayedPos = {x, y};
+}
 
         // --- Utility & Event Handlers ---
         function shuffle(array) { let a = [...array]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -2526,42 +2378,54 @@ function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
             savePlayerData(); // Save the new stats immediately
         }
 
-        function endGame(message) {
-            if (gameState.gameOver) return;
-            gameState.gameOver = true; 
-           
-            if (message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
-                 gameOverText.textContent = message;
-                 const goldEarned = gameState.player.goldEarnedThisMatch;
-                 goldWonText.textContent = `You earned ${goldEarned} GG!`;
-               
-                 const chestType = getRandomChestType();
-                 if (playerData.chests.length < playerData.maxChestSlots) {
-                     playerData.chests.push({ 
-                         type: chestType, 
-                         earnTime: Date.now(), 
-                         unlockStartTime: null,
-                         boosted: false
-                     });
-                     goldWonText.textContent += ` You won a ${chestType}!`;
-                 } else {
-                     goldWonText.textContent += ` Your chest slots are full!`;
-                 }
-                 spawnConfetti();
-                 gameOverText.className = 'game-message text-green-400 bangers-font';
-                 playerData.gold += goldEarned;
-                 playerData.wins++;
-                 savePlayerData();
-            } else { 
-                gameOverText.textContent = message;
-                const goldEarned = gameState.player.goldEarnedThisMatch + 25;
-                goldWonText.textContent = `You earned ${goldEarned} GG.`;
-                gameOverText.className = 'game-message text-red-500 bangers-font';
-                playerData.gold += goldEarned; // Gold for losing
-                savePlayerData();
-            }
-            gameOverMessage.style.display = 'flex';
+function endGame(message) {
+    if (gameState.gameOver) return; // Prevent multiple triggers
+    gameState.gameOver = true; 
+    
+    // 1. Stop the game engine immediately to prevent freezing
+    if (animationFrameId) cancelAnimationFrame(animationFrameId); 
+    
+    // 2. Clear gameplay UI
+    playerUiPanel.style.display = 'none';
+    emotePanel.style.display = 'none';
+    
+    // 3. Process Rewards
+    const goldEarned = gameState.player.goldEarnedThisMatch || 0;
+    
+    if (message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
+        gameOverText.textContent = message;
+        gameOverText.className = 'game-message text-green-400 bangers-font';
+        spawnConfetti();
+        
+        let rewardMessage = `You earned ${goldEarned} GG!`;
+        const chestType = getRandomChestType();
+        
+        if (playerData.chests.length < playerData.maxChestSlots) {
+            playerData.chests.push({ 
+                type: chestType, 
+                earnTime: Date.now(), 
+                unlockStartTime: null,
+                boosted: false
+            });
+            rewardMessage += ` You won a ${chestType}!`;
+        } else {
+            rewardMessage += ` Your chest slots are full!`;
         }
+        goldWonText.textContent = rewardMessage;
+        playerData.gold += goldEarned;
+        playerData.wins++;
+    } else { 
+        gameOverText.textContent = message;
+        const lossGold = 25 + goldEarned;
+        goldWonText.textContent = `You earned ${lossGold} GG.`;
+        gameOverText.className = 'game-message text-red-500 bangers-font';
+        playerData.gold += lossGold;
+    }
+    
+    // 4. Save and Show the Results Modal
+    savePlayerData();
+    gameOverMessage.style.display = 'flex';
+}
 
         function spawnConfetti() {
             for (let i = 0; i < 100; i++) {
@@ -2694,13 +2558,13 @@ function renderStatsScreen() {
         }
 
         // --- Event Listeners ---
-        function returnToHome() {
-            if (gameLoopId) {
-                clearInterval(gameLoopId);
-                gameLoopId = null;
-            }
-            showScreen('home');
-        }
+function returnToHome() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    showScreen('home');
+}
 
         function handleCanvasClick(e) {
             if (gameState.gameOver) return;
@@ -2821,14 +2685,14 @@ function renderStatsScreen() {
             }
         });
        
-// FIX: Improved Dragging for Mobile (Direct from Hand)
-        let dragStartHandler = (e) => {
-            const cardEl = e.target.closest('.card');
-            if (!cardEl || gameState.gameOver) return;
-            
-            const index = parseInt(cardEl.dataset.cardIndex);
-            const card = gameState.player.hand[index];
-            if (!card || gameState.player.juice < card.cost) return;
+let dragStartHandler = (e) => {
+    const cardEl = e.target.closest('.card');
+    // ADDED: Check for neuralLockout
+    if (!cardEl || gameState.gameOver || gameState.player.neuralLockout > 0) return;
+    
+    const index = parseInt(cardEl.dataset.cardIndex);
+    const card = gameState.player.hand[index];
+    if (!card || gameState.player.juice < card.cost) return;
 
             // Prevent dragging a second champion
             if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) return;

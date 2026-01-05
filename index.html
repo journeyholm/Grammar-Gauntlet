@@ -78,6 +78,10 @@ body, html {
     transition: transform 0.1s;
     cursor: pointer;
     background: white;
+    /* FIX: 'none' prevents the browser from waiting to see if you are scrolling */
+    touch-action: none; 
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .card:active {
@@ -1628,7 +1632,7 @@ function actuallyStartGame(bonusJuice = false) {
     
 // FIX: Cap the AI level at 13 so health bars don't break
     const aiLevel = Math.min(13, Math.max(1, Math.floor(1 + (playerData.wins / 3))));
-    
+
     gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
@@ -2686,37 +2690,41 @@ function returnToHome() {
         });
        
 let dragStartHandler = (e) => {
+    // FIX: Force-remove any existing ghost cards before starting a new drag
+    const existingGhosts = document.querySelectorAll('.drag-ghost');
+    existingGhosts.forEach(ghost => ghost.remove());
+
     const cardEl = e.target.closest('.card');
-    // ADDED: Check for neuralLockout
     if (!cardEl || gameState.gameOver || gameState.player.neuralLockout > 0) return;
     
     const index = parseInt(cardEl.dataset.cardIndex);
     const card = gameState.player.hand[index];
     if (!card || gameState.player.juice < card.cost) return;
 
-            // Prevent dragging a second champion
-            if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) return;
-           
-            e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e;
+    if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) return;
+   
+    // Prevent the browser from thinking we're selecting text or scrolling
+    if (e.cancelable) e.preventDefault(); 
+    
+    const touch = e.touches ? e.touches[0] : e;
 
-            // Create the visual "Ghost" card
-            const ghostEl = document.createElement('div');
-            ghostEl.textContent = card.emoji;
-            ghostEl.style.position = 'fixed';
-            ghostEl.style.zIndex = '1000';
-            ghostEl.style.pointerEvents = 'none';
-            ghostEl.style.fontSize = '4rem';
-            ghostEl.style.textShadow = '2px 2px 10px rgba(0,0,0,0.8)';
-            
-            // FIX: Set initial position EXACTLY on the finger/mouse
-            ghostEl.style.left = `${touch.clientX - 25}px`;
-            ghostEl.style.top = `${touch.clientY - 25}px`;
-            document.body.appendChild(ghostEl);
-           
-            cardEl.classList.add('opacity-50');
-            gameState.draggingCard = { card, index, element: ghostEl, sourceElement: cardEl };
-        };
+    const ghostEl = document.createElement('div');
+    ghostEl.className = 'drag-ghost'; // Added class for easier cleanup
+    ghostEl.textContent = card.emoji;
+    ghostEl.style.position = 'fixed';
+    ghostEl.style.zIndex = '1000';
+    ghostEl.style.pointerEvents = 'none';
+    ghostEl.style.fontSize = '4.5rem'; // Slightly larger for better visibility under thumb
+    ghostEl.style.textShadow = '2px 2px 15px rgba(0,0,0,0.9)';
+    
+    // Position it immediately on the finger
+    ghostEl.style.left = `${touch.clientX - 35}px`;
+    ghostEl.style.top = `${touch.clientY - 60}px`;
+    document.body.appendChild(ghostEl);
+   
+    cardEl.classList.add('opacity-50');
+    gameState.draggingCard = { card, index, element: ghostEl, sourceElement: cardEl };
+};
 
         let dragMoveHandler = (e) => {
             if (!gameState.draggingCard) return;
@@ -2734,18 +2742,22 @@ let dragEndHandler = (e) => {
 
     const { card, index, element, sourceElement } = gameState.draggingCard;
     
-    if (element && element.parentNode) {
-        document.body.removeChild(element);
+    // FIX: Comprehensive cleanup of the ghost element
+    if (element) {
+        element.remove();
     }
     
-    sourceElement.classList.remove('opacity-50');
+    // Reset visual state of the original card in the hand
+    if (sourceElement) {
+        sourceElement.classList.remove('opacity-50');
+    }
 
     const rect = canvas.getBoundingClientRect();
     const touch = e.changedTouches ? e.changedTouches[0] : e;
     const isOverCanvas = touch.clientX > rect.left && touch.clientX < rect.right && 
                         touch.clientY > rect.top && touch.clientY < rect.bottom;
 
-    if (isOverCanvas) {
+    if (isOverCanvas && gameState.dragPos) {
         const { x, y } = gameState.dragPos;
         const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
 
@@ -2753,19 +2765,17 @@ let dragEndHandler = (e) => {
             gameState.player.juice -= card.cost;
             showQuestion(card, x, y, index, isRepeat);
         } else if (y > RIVER_Y) { 
-            // --- TROOP DEPLOYMENT ---
             gameState.player.juice -= card.cost;
             playCard(card, x, y, 'player');
-            
-            // FIX: Remove from hand and push to discard so it recycles!
             const [playedCard] = gameState.player.hand.splice(index, 1);
             gameState.player.discard.push(playedCard); 
-            
             drawCard('player');
         }
     }
     
     gameState.draggingCard = null;
+    // Extra safety: force remove anything with the ghost class again
+    document.querySelectorAll('.drag-ghost').forEach(g => g.remove());
 };
        
         canvas.addEventListener('click', handleCanvasClick);

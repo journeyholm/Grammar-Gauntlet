@@ -308,6 +308,14 @@ button, .card {
             50% { opacity: 1; }
             100% { opacity: 0.7; }
         }
+
+        /* FIX: Selected card effect for click-to-place mechanic */
+.selected-card {
+    transform: translateY(-15px) scale(1.1) !important;
+    box-shadow: 0 0 25px #fbbf24, 0 10px 20px rgba(0,0,0,0.5) !important;
+    border-color: #ffffff !important;
+    z-index: 100;
+}
     </style>
 </head>
 <body class="flex">
@@ -1427,15 +1435,17 @@ class DamageIndicator {
             showWarmupQuestion();
         }
 function resetGameState() {
-            gameState = {
-                player: { juice: 5, units: [], towers: [], hand: [], gameDeck: [], discard: [], lastPlayedCard: null, lastPlayedPos: { x: 0, y: 0 }, goldEarnedThisMatch: 0, handKey: 0 },
-                opponent: { juice: 5, units: [], towers: [], hand: [], gameDeck: [], discard: [], playCooldown: 120 },
-                projectiles: [], effects: [], damageIndicators: [], particles: [],
-                gameTimer: MATCH_DURATION, gameOver: false, isDoubleJuice: false,
-                pendingSpell: null, dragPos: { x: 0, y: 0 }, draggingCard: null, difficultyFactor: 1.0,
-                shakeIntensity: 0 // Track screen shake
-            };
-        }
+    gameState = {
+        player: { juice: 5, units: [], towers: [], hand: [], gameDeck: [], discard: [], lastPlayedCard: null, lastPlayedTime: 0, lastPlayedPos: { x: 0, y: 0 }, goldEarnedThisMatch: 0, handKey: 0, neuralLockout: 0 },
+        opponent: { juice: 5, units: [], towers: [], hand: [], gameDeck: [], discard: [], playCooldown: 120 },
+        projectiles: [], effects: [], damageIndicators: [], particles: [],
+        gameTimer: MATCH_DURATION, gameOver: false, isDoubleJuice: false,
+        pendingSpell: null, dragPos: { x: 0, y: 0 }, 
+        selectedCard: null, // <--- ADD THIS LINE
+        difficultyFactor: 1.0,
+        shakeIntensity: 0 
+    };
+}
 
 function draw() {
             if (!canvas.parentElement || canvas.parentElement.style.display === 'none') return;
@@ -1531,8 +1541,6 @@ if (Math.random() > 0.92) {
             
             juiceBar.style.height = `${(gameState.player.juice / JUICE_MAX) * 100}%`;
             juiceText.textContent = Math.floor(gameState.player.juice);
-            renderPlayerHand();
-
             // FIX: Visual indicator for wrong answer lockout
             if (gameState.player.neuralLockout > 0) {
                 juiceBar.classList.add('lockout-active');
@@ -1547,63 +1555,33 @@ function update() {
     if (gameState.player.neuralLockout > 0) gameState.player.neuralLockout--;
     gameState.gameTimer -= 1/60;
 
-    // Time's Up check
     if (gameState.gameTimer <= 0) {
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
     }
 
+    // --- JUICE REGEN & UI REFRESH ---
+    const oldJuice = Math.floor(gameState.player.juice);
     if (gameState.gameTimer <= 60) gameState.isDoubleJuice = true;
     const regen = JUICE_REGEN_RATE * (gameState.isDoubleJuice ? 2 : 1);
     gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
-    gameState.opponent.juice = Math.min(JUICE_MAX, gameState.opponent.juice + regen);
+    const newJuice = Math.floor(gameState.player.juice);
+
+    // FIX: Only redraw the hand when juice reaches a new whole number
+    if (oldJuice !== newJuice) renderPlayerHand();
 
     opponentAI();
 
-    // Update Objects
     [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => {
         if (o && o.update) o.update();
     });
 
-    // --- CRITICAL: KING DEATH CHECK (INSTANT END) ---
     const oppKing = gameState.opponent.towers.find(t => t.isKing);
-    if (!oppKing || oppKing.health <= 0) {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId); // Kill loop instantly
-        
-        // Award Full 3-Crown Rewards
-        const remainingTowers = gameState.opponent.towers.length;
-        playerData.stats.towersDestroyed += remainingTowers;
-        gameState.opponent.towers.forEach(t => {
-            gameState.player.goldEarnedThisMatch += t.isKing ? 300 : 100;
-        });
-        
-        gameState.opponent.towers = [];
-        return endGame("Grammatical Victory!");
-    }
+    if (!oppKing || oppKing.health <= 0) return endGame("Grammatical Victory!");
 
     const plyrKing = gameState.player.towers.find(t => t.isKing);
-    if (!plyrKing || plyrKing.health <= 0) {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        return endGame("Deconstructed!");
-    }
+    if (!plyrKing || plyrKing.health <= 0) return endGame("Deconstructed!");
 
-    // --- SIDE TOWER & UNIT CLEANUP ---
-    const deadOpponentTowers = gameState.opponent.towers.filter(t => t.health <= 0);
-    if (deadOpponentTowers.length > 0) {
-        playerData.stats.towersDestroyed += deadOpponentTowers.length;
-        deadOpponentTowers.forEach(t => { gameState.player.goldEarnedThisMatch += 100; });
-        gameState.opponent.towers = gameState.opponent.towers.filter(t => t.health > 0);
-        gameState.shakeIntensity = 15;
-    }
-
-    gameState.player.towers = gameState.player.towers.filter(t => t.health > 0);
-    gameState.player.units = gameState.player.units.filter(u => u.health > 0);
-    gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
-    gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
-    gameState.effects = gameState.effects.filter(e => e.duration > 0);
-    gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
-    gameState.particles = gameState.particles.filter(p => p.duration > 0);
-    
     draw();
 }
 
@@ -2265,39 +2243,45 @@ function renderPlayerHand() {
     
     gameState.player.hand.forEach((card, index) => {
         const cardEl = document.createElement('div');
-        // FIX: Smaller width (70px) to prevent bottom UI overlap
-        cardEl.className = `card relative overflow-hidden flex flex-col items-center justify-center p-1 bg-white rounded-lg shadow-lg cursor-pointer transition-transform hover:scale-105`;
+        const isSelected = gameState.selectedCard && gameState.selectedCard.index === index;
+        
+        cardEl.className = `card relative flex flex-col items-center justify-center p-1 bg-white rounded-lg shadow-lg cursor-pointer transition-all`;
         cardEl.style.width = "70px"; 
-        cardEl.dataset.cardIndex = index;
+        
+        // Visual feedback if selected
+        if (isSelected) {
+            cardEl.style.transform = "translateY(-15px) scale(1.1)";
+            cardEl.style.boxShadow = "0 0 20px #fbbf24, 0 10px 20px rgba(0,0,0,0.5)";
+            cardEl.style.borderColor = "#ffffff";
+        }
 
         const canAfford = gameState.player.juice >= card.cost;
-        const canPlayChampion = !(card.category === 'Champion' && championOnField);
-        
-        if (!canAfford || !canPlayChampion) {
+        if (!canAfford || gameState.player.neuralLockout > 0) {
             cardEl.classList.add('filter', 'grayscale', 'opacity-60');
         }
 
-        const typeColor = card.category === 'Troop' ? 'text-orange-500' : 'text-purple-500';
-        
-        // FIX: Scaled down internal text and emoji for the new smaller size
         cardEl.innerHTML = `
             <div class="bangers-font text-[8px] leading-tight text-gray-700 text-center mb-1">${card.name}</div>
             <div class="text-2xl my-0.5">${card.emoji}</div>
-            <div class="bangers-font text-[7px] ${typeColor} uppercase">${card.type}</div>
+            <div class="bangers-font text-[7px] text-purple-500 uppercase">${card.type}</div>
             <div class="absolute top-0.5 left-0.5 bg-pink-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm font-bold">${card.cost}</div>
         `;
+
+        cardEl.onclick = (e) => {
+            e.stopPropagation();
+            if (gameState.player.neuralLockout > 0 || !canAfford) return;
+            
+            // Toggle selection
+            gameState.selectedCard = isSelected ? null : { card, index };
+            renderPlayerHand(); 
+        };
+
         playerHandElement.appendChild(cardEl);
     });
 
-    // Update Next Card Preview to be smaller as well
     const nextCard = gameState.player.gameDeck[gameState.player.gameDeck.length - 1];
     if (nextCard) {
-        nextCardPreview.innerHTML = `
-            <span class="text-blue-300 text-[9px] bangers-font uppercase mb-1">Next:</span>
-            <div class="text-xl">${nextCard.emoji}</div>
-            <div class="absolute top-1 right-1 bg-pink-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white shadow-sm">${nextCard.cost}</div>
-        `;
-        nextCardPreview.className = "w-16 h-16 border-2 border-blue-400/50 rounded-xl mb-2 flex flex-col items-center justify-center text-center relative bg-slate-900/80";
+        nextCardPreview.innerHTML = `<span class="text-blue-300 text-[9px] bangers-font">Next:</span><div class="text-xl">${nextCard.emoji}</div>`;
     }
 }
         function showWarmupQuestion() {
@@ -2570,31 +2554,41 @@ function returnToHome() {
     showScreen('home');
 }
 
-        function handleCanvasClick(e) {
-            if (gameState.gameOver) return;
-            const pos = getCanvasPos(e);
-           
+function handleCanvasClick(e) {
+    if (gameState.gameOver) return;
+    const pos = getCanvasPos(e);
 
-// Home button check
-            const hb = HOME_BUTTON;
-            if (pos.x > hb.x - hb.width / 2 && pos.x < hb.x + hb.width / 2 &&
-                pos.y > hb.y - hb.height / 2 && pos.y < hb.y + hb.height / 2) {
-                showConfirmationModal("Deconstruct this session and return to library?", () => {
-                    returnToHome();
-                });
-                return; 
-            }
+    // 1. Home button check
+    const hb = HOME_BUTTON;
+    if (pos.x > hb.x - hb.width / 2 && pos.x < hb.x + hb.width / 2 &&
+        pos.y > hb.y - hb.height / 2 && pos.y < hb.y + hb.height / 2) {
+        showConfirmationModal("Deconstruct this session and return to library?", () => { returnToHome(); });
+        return; 
+    }
 
-            // Check for hero ability activation
-            const clickedChampion = gameState.player.units.find(unit => 
-                unit.card.category === 'Champion' &&
-                distance(pos.x, pos.y, unit.x, unit.y) < unit.size
-            );
+    // 2. Placement Logic
+    if (gameState.selectedCard) {
+        const { card, index } = gameState.selectedCard;
+        const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
 
-            if (clickedChampion) {
-                activateChampionAbility(clickedChampion);
-            }
+        // Restriction: Troops must stay below river
+        if (card.category !== 'Spell' && pos.y < RIVER_Y) return;
+
+        if (card.category === 'Spell' || isRepeat) {
+            gameState.player.juice -= card.cost;
+            showQuestion(card, pos.x, pos.y, index, isRepeat);
+        } else { 
+            gameState.player.juice -= card.cost;
+            playCard(card, pos.x, pos.y, 'player');
+            const [playedCard] = gameState.player.hand.splice(index, 1);
+            gameState.player.discard.push(playedCard); 
+            drawCard('player');
         }
+        gameState.selectedCard = null; // Clear selection
+        renderPlayerHand();
+        return;
+    }
+}
        
         function activateChampionAbility(champion) {
             if (gameState.gameOver || champion.owner !== 'player') return;
@@ -2689,103 +2683,8 @@ function returnToHome() {
             }
         });
        
-let dragStartHandler = (e) => {
-    // FIX: Force-remove any existing ghost cards before starting a new drag
-    const existingGhosts = document.querySelectorAll('.drag-ghost');
-    existingGhosts.forEach(ghost => ghost.remove());
-
-    const cardEl = e.target.closest('.card');
-    if (!cardEl || gameState.gameOver || gameState.player.neuralLockout > 0) return;
-    
-    const index = parseInt(cardEl.dataset.cardIndex);
-    const card = gameState.player.hand[index];
-    if (!card || gameState.player.juice < card.cost) return;
-
-    if (card.category === 'Champion' && gameState.player.units.some(unit => unit.card.category === 'Champion')) return;
-   
-    // Prevent the browser from thinking we're selecting text or scrolling
-    if (e.cancelable) e.preventDefault(); 
-    
-    const touch = e.touches ? e.touches[0] : e;
-
-    const ghostEl = document.createElement('div');
-    ghostEl.className = 'drag-ghost'; // Added class for easier cleanup
-    ghostEl.textContent = card.emoji;
-    ghostEl.style.position = 'fixed';
-    ghostEl.style.zIndex = '1000';
-    ghostEl.style.pointerEvents = 'none';
-    ghostEl.style.fontSize = '4.5rem'; // Slightly larger for better visibility under thumb
-    ghostEl.style.textShadow = '2px 2px 15px rgba(0,0,0,0.9)';
-    
-    // Position it immediately on the finger
-    ghostEl.style.left = `${touch.clientX - 35}px`;
-    ghostEl.style.top = `${touch.clientY - 60}px`;
-    document.body.appendChild(ghostEl);
-   
-    cardEl.classList.add('opacity-50');
-    gameState.draggingCard = { card, index, element: ghostEl, sourceElement: cardEl };
-};
-
-        let dragMoveHandler = (e) => {
-            if (!gameState.draggingCard) return;
-            e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e;
-            
-            // Smoothly follow finger
-            gameState.draggingCard.element.style.left = `${touch.clientX - 25}px`;
-            gameState.draggingCard.element.style.top = `${touch.clientY - 40}px`;
-            gameState.dragPos = getCanvasPos(e);
-        };
-       
-let dragEndHandler = (e) => {
-    if (!gameState.draggingCard) return;
-
-    const { card, index, element, sourceElement } = gameState.draggingCard;
-    
-    // FIX: Comprehensive cleanup of the ghost element
-    if (element) {
-        element.remove();
-    }
-    
-    // Reset visual state of the original card in the hand
-    if (sourceElement) {
-        sourceElement.classList.remove('opacity-50');
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.changedTouches ? e.changedTouches[0] : e;
-    const isOverCanvas = touch.clientX > rect.left && touch.clientX < rect.right && 
-                        touch.clientY > rect.top && touch.clientY < rect.bottom;
-
-    if (isOverCanvas && gameState.dragPos) {
-        const { x, y } = gameState.dragPos;
-        const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
-
-        if (card.category === 'Spell' || isRepeat) {
-            gameState.player.juice -= card.cost;
-            showQuestion(card, x, y, index, isRepeat);
-        } else if (y > RIVER_Y) { 
-            gameState.player.juice -= card.cost;
-            playCard(card, x, y, 'player');
-            const [playedCard] = gameState.player.hand.splice(index, 1);
-            gameState.player.discard.push(playedCard); 
-            drawCard('player');
-        }
-    }
-    
-    gameState.draggingCard = null;
-    // Extra safety: force remove anything with the ghost class again
-    document.querySelectorAll('.drag-ghost').forEach(g => g.remove());
-};
-       
-        canvas.addEventListener('click', handleCanvasClick);
-        playerHandElement.addEventListener('mousedown', dragStartHandler);
-        window.addEventListener('mousemove', dragMoveHandler);
-        window.addEventListener('mouseup', dragEndHandler);
-
-        playerHandElement.addEventListener('touchstart', dragStartHandler, { passive: false });
-        window.addEventListener('touchmove', dragMoveHandler, { passive: false });
-        window.addEventListener('touchend', dragEndHandler);
+canvas.addEventListener('click', handleCanvasClick);
+window.addEventListener('resize', resizeCanvas);
        
         window.addEventListener('resize', resizeCanvas);
 
@@ -3057,10 +2956,12 @@ if (sortSelect) {
 
 function showTutorial() {
     const tutorialSteps = [
-        { title: "Welcome, Warrior!", text: "This is Grammar Gauntlet. You will use the power of parts of speech to win battles." },
-        { title: "The Word Hoard", text: "Go to 'My Lexicon' to see your starter cards: The Noun King, the Horde, and the Peasant." },
-        { title: "Linguistic Combat", text: "Drag cards onto the field. Spells require a Grammar Check—answer correctly to unleash their power!" }
+        { title: "Linguistic Combat", text: "New Mechanic: TAP a card in your hand to select it, then TAP the battlefield to deploy! No dragging required." },
+        { title: "Grammar Links", text: "When you tap to place a Spell, you must complete a Grammar Check. Accuracy is key to victory!" },
+        { title: "Strategic Depth", text: "Place troops on your side of the river. Use your King Tower as the last line of defense!" }
     ];
+    
+    // ... rest of the renderStep logic remains the same
 
     let currentStep = 0;
 

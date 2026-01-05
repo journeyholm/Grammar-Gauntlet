@@ -1181,13 +1181,10 @@ takeDamage(amount, isSpell = false) {
 draw() {
         ctx.save();
         
-        // --- 1. MASTERY AESTHETICS (Level 5+) ---
+        // --- 1. MASTERY AESTHETICS ---
         if (this.level >= 5) {
-            // Level 5+ gets a Golden Aura, Level 11+ gets a Diamond Glow
             ctx.shadowBlur = this.level >= 11 ? 40 : 30;
             ctx.shadowColor = this.level >= 11 ? "#00fbff" : "#FFD700";
-            
-            // Draw Mastery Icon above the tower
             const masteryIcon = this.level >= 11 ? "💎" : (this.level >= 8 ? "🔥" : "⭐");
             ctx.font = "bold 16px Inter";
             ctx.fillText(masteryIcon, this.x, this.y - this.size - 15);
@@ -1211,14 +1208,17 @@ draw() {
         ctx.fillText(towerEmoji, this.x, this.y);
         ctx.restore();
 
-        // --- 3. FIX: EMOTE RENDERING ---
+        // --- 3. FIX: EMOTE RENDERING (Directional) ---
         if (this.emote.duration > 0) {
             ctx.save();
             ctx.font = '40px sans-serif';
             ctx.textAlign = 'center';
-            // Slight float/bounce effect
             const bounce = Math.sin(this.emote.duration / 10) * 5;
-            ctx.fillText(this.emote.text, this.x, this.y - this.size - 40 + bounce);
+            
+            // FIX: If opponent, draw BELOW the tower. If player, draw ABOVE.
+            const yOffset = this.owner === 'opponent' ? (this.size + 50) : (-this.size - 40);
+            
+            ctx.fillText(this.emote.text, this.x, this.y + yOffset + bounce);
             ctx.restore();
         }
 
@@ -1567,15 +1567,31 @@ function update() {
     gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + regen);
     const newJuice = Math.floor(gameState.player.juice);
 
-    // FIX: Only redraw the hand when juice reaches a new whole number
     if (oldJuice !== newJuice) renderPlayerHand();
 
     opponentAI();
 
+    // --- ENTITY UPDATES ---
     [...gameState.player.towers, ...gameState.opponent.towers, ...gameState.player.units, ...gameState.opponent.units, ...gameState.projectiles, ...gameState.effects, ...gameState.damageIndicators, ...gameState.particles].forEach(o => {
         if (o && o.update) o.update();
     });
 
+    // --- FIX: GARBAGE COLLECTION (Remove Dead Things) ---
+    // 1. Remove dead troops
+    gameState.player.units = gameState.player.units.filter(u => u.health > 0);
+    gameState.opponent.units = gameState.opponent.units.filter(u => u.health > 0);
+
+    // 2. Remove dead towers (BUT keep the King so we can detect Game Over properly below)
+    gameState.player.towers = gameState.player.towers.filter(t => t.health > 0 || t.isKing);
+    gameState.opponent.towers = gameState.opponent.towers.filter(t => t.health > 0 || t.isKing);
+
+    // 3. Remove dead projectiles & effects
+    gameState.projectiles = gameState.projectiles.filter(p => p.health > 0);
+    gameState.effects = gameState.effects.filter(e => e.duration > 0);
+    gameState.damageIndicators = gameState.damageIndicators.filter(d => d.duration > 0);
+    gameState.particles = gameState.particles.filter(p => p.duration > 0);
+
+    // --- WIN/LOSS CHECK ---
     const oppKing = gameState.opponent.towers.find(t => t.isKing);
     if (!oppKing || oppKing.health <= 0) return endGame("Grammatical Victory!");
 
@@ -1586,8 +1602,10 @@ function update() {
 }
 
 function actuallyStartGame(bonusJuice = false) {
+    // Ensure the database is ready
     if (!QUESTIONS_DATABASE.includes(EXTENDED_QUESTIONS[0])) QUESTIONS_DATABASE.push(...EXTENDED_QUESTIONS);
     
+    // Switch screens
     Object.values(screens).forEach(s => s.classList.add('hidden'));
     gameContainer.style.display = 'block';
     playerUiPanel.style.display = 'flex';
@@ -1599,18 +1617,27 @@ function actuallyStartGame(bonusJuice = false) {
     
     if(bonusJuice) gameState.player.juice++;
 
+    // Dynamic difficulty based on wins
     gameState.difficultyFactor = Math.min(2.5, 1 + (playerData.wins / 8));
 
+    // Prepare Player Deck
     const playerDeckCards = playerData.deck.map(id => { 
         const cardData = playerData.cards.find(c => c.id === id); 
         return { ...[...ALL_CARDS, ...SPAWNED_CARDS].find(c => c.id === id), ...cardData }; 
     });
     gameState.player.gameDeck = shuffle(playerDeckCards);
-    for (let i = 0; i < HAND_SIZE; i++) drawCard('player');
     
-// FIX: Cap the AI level at 13 so health bars don't break
+    // Deal the initial hand
+    for (let i = 0; i < HAND_SIZE; i++) drawCard('player');
+
+    // --- FIX: RENDER HAND IMMEDIATELY ---
+    // Previously, this waited for juice to regenerate. Now we force it to show instantly.
+    renderPlayerHand(); 
+    
+    // Cap AI level to avoid bugs
     const aiLevel = Math.min(13, Math.max(1, Math.floor(1 + (playerData.wins / 3))));
 
+    // Spawn Towers
     gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
     gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
@@ -1624,7 +1651,6 @@ function actuallyStartGame(bonusJuice = false) {
     
     resizeCanvas();
 
-    // FIX: Clear any existing loops and start the high-performance loop
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
     function gameLoop() {
@@ -1637,54 +1663,88 @@ function actuallyStartGame(bonusJuice = false) {
 }
 
 function opponentAI() {
-            const opp = gameState.opponent;
-            const player = gameState.player;
-            const diff = gameState.difficultyFactor;
+    const opp = gameState.opponent;
+    const player = gameState.player;
+    const diff = gameState.difficultyFactor;
+    
+    // AI thinks faster as you win more games
+    if (--opp.playCooldown > 0) return;
+
+    // --- 1. ANALYZE THE BOARD ---
+    // Define the "lanes"
+    const LEFT_LANE_X = ARENA_WIDTH * 0.25;
+    const RIGHT_LANE_X = ARENA_WIDTH * 0.75;
+    
+    // Check for threats (Player units on AI side of river)
+    const threats = player.units.filter(u => u.y < RIVER_Y);
+    const leftThreats = threats.filter(u => u.x < ARENA_WIDTH / 2);
+    const rightThreats = threats.filter(u => u.x > ARENA_WIDTH / 2);
+
+    // Filter cards we can afford right now
+    const playableCards = opp.hand.filter(c => opp.juice >= c.cost);
+    if (playableCards.length === 0) return;
+
+    // Categorize hand for strategy
+    const tanks = playableCards.filter(c => c.health >= 600);
+    const attackers = playableCards.filter(c => c.damage >= 40 || c.category === 'Spell');
+    const cheapCycle = playableCards.filter(c => c.cost <= 3);
+
+    let action = null;
+
+    // --- 2. DEFENSIVE PRIORITY (React to threats) ---
+    if (threats.length > 0) {
+        // Decide which lane is more dangerous (has more units)
+        const targetThreat = leftThreats.length > rightThreats.length ? leftThreats[0] : rightThreats[0];
+        
+        if (targetThreat) {
+            // STRATEGY: If we have a tank, use it to distract. If not, use high damage to kill.
+            // If the threat is huge (high HP), we definitely need high damage.
+            const defenseCard = (targetThreat.health > 400 && attackers.length > 0) ? attackers[0] : 
+                                (tanks.length > 0 ? tanks[0] : playableCards[0]);
             
-            if (--opp.playCooldown > 0) return;
-
-            // AI LOGIC: Check for enemy clusters to play Spells
-            const playerCluster = player.units.filter(u => u.y < RIVER_Y + 100);
-            const playableCards = opp.hand.filter(c => opp.juice >= c.cost);
-
-            let action = null;
-
-            // 1. SPELL REACTION: Use Fireball if 3+ player units are nearby
-            if (playerCluster.length >= 3) {
-                const fireball = playableCards.find(c => c.category === 'Spell');
-                if (fireball) {
-                    action = { card: fireball, x: playerCluster[0].x, y: playerCluster[0].y };
-                }
-            }
-
-            // 2. DEFENSE: React to units crossing the bridge
-            const incomingThreats = player.units.filter(u => u.y < RIVER_Y);
-            if (!action && incomingThreats.length > 0) {
-                const defCard = playableCards.sort((a,b) => a.cost - b.cost)[0]; 
-                if (defCard) action = { card: defCard, x: incomingThreats[0].x, y: 150 };
-            } 
-
-            // 3. OFFENSE: Banking Juice for a "Combo Push" (Tank at back + Support)
-            if (!action && opp.juice >= 9.5) {
-                const laneX = Math.random() > 0.5 ? ARENA_WIDTH * 0.25 : ARENA_WIDTH * 0.75;
-                const tank = playableCards.find(c => c.health > 500);
-                const support = playableCards.find(c => c.health <= 500 && c.category === 'Troop');
+            if (defenseCard) {
+                // PLACEMENT: Don't drop right on top. Drop slightly towards our tower to pull them in.
+                // If it's a ranged/spell card, drop it further back.
+                const isRanged = defenseCard.range > 50 || defenseCard.category === 'Spell';
+                const deployY = isRanged ? 120 : 180; // 120 is closer to King, 180 is closer to River
                 
-                // Professional Move: Drop Tank at the VERY back to build up support juice
-                action = tank ? { card: tank, x: laneX, y: 50 } : { card: support, x: laneX, y: 150 };
-            }
-
-            if (action) {
-                opp.juice -= action.card.cost;
-                const cardIndex = opp.hand.findIndex(c => c.id === action.card.id);
-                const [playedCard] = opp.hand.splice(cardIndex, 1);
-                opp.discard.push(playedCard);
-                drawCard('opponent');
-                playCard(playedCard, action.x, action.y, 'opponent');
-                // Bot intelligence scaling
-                opp.playCooldown = Math.max(20, (120 + Math.random() * 40) / diff);
+                action = { card: defenseCard, x: targetThreat.x, y: deployY };
             }
         }
+    }
+
+    // --- 3. OFFENSIVE PRIORITY (Attack if safe) ---
+    // Only attack if we have lots of juice OR if we haven't played in a while
+    else if (!action && (opp.juice >= 8.5 || opp.playCooldown < -60)) {
+        // STRATEGY: "Tank and Spank"
+        // Try to play a Tank in the back first. If we don't have one, play a cheap unit.
+        
+        // Pick a random lane to attack
+        const laneX = Math.random() > 0.5 ? LEFT_LANE_X : RIGHT_LANE_X;
+        
+        if (tanks.length > 0) {
+            // Play tank way in the back to build elixir while it walks
+            action = { card: tanks[0], x: laneX, y: 60 }; 
+        } else if (playableCards.length > 0) {
+            // Play whatever we have near the bridge to pressure
+            action = { card: playableCards[0], x: laneX, y: RIVER_Y - 40 };
+        }
+    }
+
+    // --- 4. EXECUTE ---
+    if (action) {
+        opp.juice -= action.card.cost;
+        const cardIndex = opp.hand.findIndex(c => c.id === action.card.id);
+        const [playedCard] = opp.hand.splice(cardIndex, 1);
+        opp.discard.push(playedCard);
+        drawCard('opponent');
+        playCard(playedCard, action.x, action.y, 'opponent');
+        
+        // Reset Cooldown (Base: 2.5s, gets faster with difficulty)
+        // Level 1 diff: ~2.5s wait. Level 3 diff: ~1s wait.
+        opp.playCooldown = Math.max(30, (150 / diff));
+    }
+}
 
         // --- UI & Player Data ---
 function getArenaTheme(wins) {
@@ -2367,25 +2427,49 @@ function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
         }
 
 function endGame(message) {
-    if (gameState.gameOver) return; // Prevent multiple triggers
+    if (gameState.gameOver) return; 
     gameState.gameOver = true; 
     
-    // 1. Stop the game engine immediately to prevent freezing
     if (animationFrameId) cancelAnimationFrame(animationFrameId); 
     
-    // 2. Clear gameplay UI
     playerUiPanel.style.display = 'none';
     emotePanel.style.display = 'none';
     
-    // 3. Process Rewards
-    const goldEarned = gameState.player.goldEarnedThisMatch || 0;
-    
-    if (message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
-        gameOverText.textContent = message;
+    // --- FIX: CROWN LOGIC ---
+    const oppKing = gameState.opponent.towers.find(t => t.isKing);
+    const isKingDead = !oppKing || oppKing.health <= 0;
+
+    let crownsWon = 0;
+    let isWin = false;
+
+    // Check if we won
+    if (isKingDead || message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
+        isWin = true;
+        
+        if (isKingDead) {
+            // RULE: If King dies, it is ALWAYS a 3-Crown win
+            crownsWon = 3;
+        } else {
+            // If King is alive (time ran out), calculate based on missing side towers
+            crownsWon = 3 - gameState.opponent.towers.length;
+        }
+    } else { 
+        // If we lost, we still get credit for any towers we managed to destroy
+        crownsWon = 3 - gameState.opponent.towers.length;
+    }
+
+    let totalGold = 0;
+
+    if (isWin) {
+        // REWARD: 50 Win Bonus + 25 per Crown
+        // A King Kill (3 crowns) = 50 + 75 = 125 Gold
+        totalGold = 50 + (crownsWon * 25);
+
+        gameOverText.textContent = "Grammatical Victory!"; // Force victory text if King died
         gameOverText.className = 'game-message text-green-400 bangers-font';
         spawnConfetti();
         
-        let rewardMessage = `You earned ${goldEarned} GG!`;
+        let rewardMessage = `You earned ${totalGold} GG!`;
         const chestType = getRandomChestType();
         
         if (playerData.chests.length < playerData.maxChestSlots) {
@@ -2395,22 +2479,28 @@ function endGame(message) {
                 unlockStartTime: null,
                 boosted: false
             });
-            rewardMessage += ` You won a ${chestType}!`;
+            rewardMessage += ` + ${chestType}!`;
         } else {
-            rewardMessage += ` Your chest slots are full!`;
+            rewardMessage += ` (Slots Full)`;
         }
+
         goldWonText.textContent = rewardMessage;
-        playerData.gold += goldEarned;
+        
+        playerData.gold += totalGold;
         playerData.wins++;
+        playerData.stats.towersDestroyed += crownsWon; 
+        
     } else { 
-        gameOverText.textContent = message;
-        const lossGold = 25 + goldEarned;
-        goldWonText.textContent = `You earned ${lossGold} GG.`;
+        totalGold = 20 + (crownsWon * 10); 
+        
+        gameOverText.textContent = message === "Grammatical Victory!" ? "Deconstructed!" : message;
+        goldWonText.textContent = `Defeat... but you earned ${totalGold} GG.`;
         gameOverText.className = 'game-message text-red-500 bangers-font';
-        playerData.gold += lossGold;
+        
+        playerData.gold += totalGold;
+        playerData.stats.towersDestroyed += crownsWon;
     }
     
-    // 4. Save and Show the Results Modal
     savePlayerData();
     gameOverMessage.style.display = 'flex';
 }

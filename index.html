@@ -1805,22 +1805,27 @@ function getArenaTheme(wins) {
         bridge: '#78350f', bridgeStroke: '#fbbf24' 
     };
 }
-        function showScreen(screenName) { 
-            Object.values(screens).forEach(s => s.classList.add('hidden')); 
-            screens[screenName].classList.remove('hidden');
-            gameContainer.style.display = 'none';
-            playerUiPanel.style.display = 'none';
-            emotePanel.style.display = 'none';
-            if (chestUpdateInterval) clearInterval(chestUpdateInterval);
-            if(screenName==='home') {
-                renderHomeScreen();
-                chestUpdateInterval = setInterval(renderHomeScreen, 1000);
-            }
-            if(screenName==='deck') renderDeckScreen(); 
-            if(screenName==='instructions') renderInstructions();
-            if(screenName==='stats') renderStatsScreen();
-            if(screenName==='shop') renderShopScreen();
-        }
+function showScreen(screenName) { 
+    Object.values(screens).forEach(s => s.classList.add('hidden')); 
+    screens[screenName].classList.remove('hidden');
+    gameContainer.style.display = 'none';
+    playerUiPanel.style.display = 'none';
+    emotePanel.style.display = 'none';
+    
+    // FIX: Clear existing intervals to prevent memory leaks or errors
+    if (chestUpdateInterval) clearInterval(chestUpdateInterval);
+    if (window.shopInterval) clearInterval(window.shopInterval); // <--- ADD THIS
+
+    if(screenName==='home') {
+        renderHomeScreen();
+        chestUpdateInterval = setInterval(renderHomeScreen, 1000);
+    }
+    if(screenName==='deck') renderDeckScreen(); 
+    if(screenName==='instructions') renderInstructions();
+    if(screenName==='stats') renderStatsScreen();
+    if(screenName==='shop') renderShopScreen();
+}
+
 function renderInstructions() {
     instructionsContent.innerHTML = `
         <div class="space-y-8">
@@ -1980,15 +1985,23 @@ function renderShopScreen() {
     const now = new Date();
     const lastRefresh = playerData.shop.lastRefresh ? new Date(playerData.shop.lastRefresh) : null;
 
+    // 1. Check if we need to generate new deals (New Day Logic)
     if (!lastRefresh || lastRefresh.getDate() !== now.getDate() || lastRefresh.getMonth() !== now.getMonth() || lastRefresh.getFullYear() !== now.getFullYear()) {
         generateNewShopItems();
         playerData.shop.lastRefresh = now.toISOString();
         savePlayerData();
     }
 
+    // --- FIX: START THE TIMER ---
+    // This makes the "Deals refresh in..." text actually count down!
+    if (window.shopInterval) clearInterval(window.shopInterval);
+    updateShopTimer(); // Run once immediately so it doesn't show 00:00:00
+    window.shopInterval = setInterval(updateShopTimer, 1000); // Tick every second
+
+    // 2. Clear and Render Items
     shopItemsContainer.innerHTML = '';
 
-playerData.shop.items.forEach(item => {
+    playerData.shop.items.forEach(item => {
         const card = ALL_CARDS.find(c => c.id === item.cardId);
         if (!card) return;
 
@@ -2008,31 +2021,30 @@ playerData.shop.items.forEach(item => {
             </div>
         `;
 
-// --- UPDATED SHOP BUTTON LOGIC ---
-            const purchaseBtn = document.createElement('button');
-            purchaseBtn.className = 'btn-wood w-full py-4 text-2xl transition-all';
+        const purchaseBtn = document.createElement('button');
+        purchaseBtn.className = 'btn-wood w-full py-4 text-2xl transition-all';
 
-            if (item.purchased) {
-                // State 1: Item already claimed/bought
-                purchaseBtn.textContent = 'CLAIMED';
-                purchaseBtn.disabled = true;
-                purchaseBtn.classList.add('opacity-50', 'grayscale');
-            } else if (item.isFree) {
-                // State 2: The Daily Free Gift (Green styling)
-                purchaseBtn.innerHTML = `🎁 FREE GIFT`;
-                purchaseBtn.classList.add('bg-green-600', 'hover:bg-green-500');
-                purchaseBtn.onclick = () => buyShopItem(item);
-            } else {
-                // State 3: Regular item with a gold cost (Fixed syntax)
-                purchaseBtn.innerHTML = `💰 ${item.cost}`;
-                purchaseBtn.disabled = playerData.gold < item.cost;
-                purchaseBtn.onclick = () => buyShopItem(item);
-            }
-            
-            cardEl.appendChild(purchaseBtn);
+        if (item.purchased) {
+            // State 1: Item already claimed/bought
+            purchaseBtn.textContent = 'CLAIMED';
+            purchaseBtn.disabled = true;
+            purchaseBtn.classList.add('opacity-50', 'grayscale');
+        } else if (item.isFree) {
+            // State 2: The Daily Free Gift (Green styling)
+            purchaseBtn.innerHTML = `🎁 FREE GIFT`;
+            purchaseBtn.classList.add('bg-green-600', 'hover:bg-green-500');
+            purchaseBtn.onclick = () => buyShopItem(item);
+        } else {
+            // State 3: Regular item with a gold cost
+            purchaseBtn.innerHTML = `💰 ${item.cost}`;
+            purchaseBtn.disabled = playerData.gold < item.cost;
+            purchaseBtn.onclick = () => buyShopItem(item);
+        }
+        
+        cardEl.appendChild(purchaseBtn);
         shopItemsContainer.appendChild(cardEl);
     });
-} // This closes the function
+}
         
         function updateShopTimer() {
             const now = new Date();

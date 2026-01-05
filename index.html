@@ -211,7 +211,7 @@ body, html {
     flex-direction: column; /* Stacks emoji, title, and button vertically */
     align-items: center;
     justify-content: space-between;
-    min-height: 400px; /* Prevents cards from looking like flat pancakes */
+    min-height: 320; /* Prevents cards from looking like flat pancakes */
     box-shadow: 0 10px 20px rgba(0,0,0,0.4);
     transition: transform 0.2s;
 }
@@ -422,8 +422,7 @@ button, .card {
     </div>
 </div>
                 
-                <div id="card-collection-container" class="scrollable-area grid grid-cols-4 gap-4 justify-items-center">
-                    </div>
+<div id="card-collection-container" class="scrollable-area grid grid-cols-4 gap-4 justify-items-center overflow-y-auto flex-grow min-h-0 pb-4">                    </div>
             </div>
 
 <div class="w-1/3 flex flex-col gap-4">
@@ -465,9 +464,7 @@ button, .card {
                 <div class="text-lg">💰 <span id="shop-gold-display" class="font-bold">0</span> Grammar Gold</div>
                 <p id="shop-refresh-timer" class="text-sm text-gray-400">Deals refresh in: 00:00:00</p>
             </div>
-            <div id="shop-items-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow overflow-y-auto">
-                <!-- Shop items will be rendered here -->
-            </div>
+<div id="shop-items-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow overflow-y-auto min-h-0 pb-24">            </div>
             <button id="shop-back-btn" class="btn-wood bangers-font text-2xl mt-4 mx-auto">Return to Library</button>
         </div>
     </div>
@@ -540,6 +537,30 @@ button, .card {
            </div>
       </div>
 
+<div id="level-up-modal" class="absolute inset-0 bg-black/95 z-[150] hidden flex-col items-center justify-center p-4">
+        <div class="relative bg-gray-900 border-4 border-yellow-400 p-8 rounded-3xl text-center max-w-md w-full shadow-[0_0_50px_rgba(250,204,21,0.6)] overflow-hidden scale-100 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-b from-yellow-500/20 to-purple-900/60 pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col items-center">
+                <h2 class="bangers-font text-6xl text-transparent bg-clip-text bg-gradient-to-t from-yellow-500 to-white drop-shadow-sm mb-4 animate-bounce">LEVEL UP!</h2>
+                
+                <div class="text-8xl mb-4 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">🆙</div>
+                
+                <div class="text-3xl text-white font-bold mb-6">You reached <span class="text-yellow-400">Level <span id="level-up-number">5</span></span></div>
+
+                <div id="level-up-tier-box" class="hidden bg-black/60 p-4 rounded-xl border border-yellow-500/50 mb-6 w-full">
+                    <p class="text-gray-400 text-xs uppercase tracking-widest mb-1">NEW REGION UNLOCKED</p>
+                    <p id="level-up-tier-name" class="bangers-font text-2xl text-purple-300 mb-1">Tier Name</p>
+                    <p id="level-up-perk" class="text-sm text-green-400 font-bold">Perk: ...</p>
+                </div>
+
+                <button id="level-up-claim-btn" class="btn-wood text-2xl px-10 py-3 w-full shadow-lg hover:scale-105 transition-transform">AWESOME!</button>
+            </div>
+            
+            <canvas id="level-up-confetti" class="absolute inset-0 pointer-events-none"></canvas>
+        </div>
+    </div>
+    
     <script>
         // --- DOM Elements ---
         const screens = { home: document.getElementById('home-screen'), deck: document.getElementById('deck-screen'), instructions: document.getElementById('instructions-screen'), stats: document.getElementById('stats-screen'), shop: document.getElementById('shop-screen') };
@@ -581,6 +602,25 @@ button, .card {
         const shopItemsContainer = document.getElementById('shop-items-container');
         const shopRefreshTimer = document.getElementById('shop-refresh-timer');
 
+// --- NEW: TIER & PROGRESSION CONFIG ---
+        const XP_PER_LEVEL = 100; // XP needed to go from Level 1 to 2, etc.
+        const TIER_DATA = [
+            { id: 1, name: "The Initiate's Path", range: [1, 5], color: "text-gray-400", border: "border-gray-400", perk: "None", emoji: "🛡️" },
+            { id: 2, name: "The Challenger's Arena", range: [6, 10], color: "text-green-400", border: "border-green-400", perk: "Daily Gold Multiplier (1.2x)", emoji: "⚔️" },
+            { id: 3, name: "The Tactician's Guild", range: [11, 15], color: "text-blue-400", border: "border-blue-400", perk: "Hint Market Access", emoji: "🧠" },
+            { id: 4, name: "The Master's Circle", range: [16, 20], color: "text-purple-400", border: "border-purple-400", perk: "Time Attack Mode", emoji: "🔮" },
+            { id: 5, name: "The Legends", range: [21, 50], color: "text-yellow-400", border: "border-yellow-400", perk: "Prestige & Hall of Fame", emoji: "👑" }
+        ];
+
+        // XP Calculation Helper
+        function getLevelFromXP(xp) {
+            return Math.floor(xp / XP_PER_LEVEL) + 1;
+        }
+        
+        function getCurrentTier(level) {
+            return TIER_DATA.find(t => level >= t.range[0] && level <= t.range[1]) || TIER_DATA[TIER_DATA.length - 1];
+        }
+        
         // --- Game Constants ---
         const ARENA_WIDTH = 500; const ARENA_HEIGHT = 700;
         const JUICE_MAX = 10; const JUICE_REGEN_RATE = 0.0085;
@@ -697,9 +737,15 @@ const SPAWNED_CARDS = [
             { id: 22, name: 'Dangling Modifier Trap', category: 'Spell', type: 'Modifier', cost: 3, emoji: '🪤', unlockCost: 900 },
             { id: 30, name: 'Onomatopoeia Bomb', category: 'Spell', type: 'Onomatopoeia', cost: 2, emoji: '💣', unlockCost: 250 },
             { id: 31, name: 'Metaphor Lighthouse', category: 'Building', type: 'Metaphor', cost: 4, emoji: '🗼', health: 600, unlockCost: 900 },
-            { id: 25, name: 'Semicolon Sentinel', category: 'Champion', type: 'Semicolon', cost: 6, emoji: '🤖', health: 1000, unlockCost: 1500 },
-            { id: 26, name: 'Exclamation Point Executioner', category: 'Champion', type: 'Exclamation', cost: 6, emoji: '⚔️', health: 750, unlockCost: 1500 },
-            { id: 29, name: 'Ellipsis Assassin', category: 'Champion', type: 'Ellipsis', cost: 6, emoji: '🗡️', health: 650, unlockCost: 1500 }
+// --- CHAMPION CARDS (UPDATED) ---
+    { id: 25, name: 'Semicolon Sentinel', category: 'Champion', type: 'Semicolon', cost: 6, emoji: '🤖', health: 1000, damage: 120, speed: 0.6, range: 30, attackSpeed: 110, unlockCost: 1500, 
+      ability: { type: 'Clause Connector', name: "Link Up", damage: 0, radius: 150, shieldHealth: 300, duration: 480 }, abilityCost: 1, abilityCooldown: 600 },
+
+    { id: 26, name: 'Exclamation Executioner', category: 'Champion', type: 'Exclamation', cost: 6, emoji: '⚔️', health: 850, damage: 200, speed: 0.8, range: 30, attackSpeed: 140, unlockCost: 1500, 
+      ability: { type: 'Emphatic Strike', name: "SHOUT!", damage: 400, radius: 100 }, abilityCost: 2, abilityCooldown: 400 },
+
+    { id: 29, name: 'Ellipsis Assassin', category: 'Champion', type: 'Ellipsis', cost: 5, emoji: '🗡️', health: 600, damage: 150, speed: 1.4, range: 30, attackSpeed: 60, unlockCost: 1500, 
+      ability: { type: 'Trailing Off', name: "Fade...", damage: 0, radius: 0 }, abilityCost: 1, abilityCooldown: 300 }
         ];
 
         const QUESTIONS_DATABASE = [
@@ -1257,42 +1303,69 @@ class Unit {
         this.card = card;
         this.level = level; this.x = x; this.y = y; this.owner = owner;
         const scale = Math.pow(1.1, level - 1);
-        this.maxHealth = Math.round(card.health * scale); this.health = this.maxHealth;
+        this.maxHealth = Math.round(card.health * scale); 
+        this.health = this.maxHealth;
         this.damage = Math.round(card.damage * scale);
         this.speed = card.speed; this.range = card.range;
         this.attackSpeed = card.attackSpeed;
-        this.attackCooldown = 0; this.size = 20; this.target = null; this.effects = {};
+        this.attackCooldown = 0; 
+        
+        // --- NEW: ABILITY & EFFECT TIMERS ---
+        this.abilityCooldownTimer = 0; // Tracks cooldown for Champions
+        
+        this.size = 20; this.target = null; 
+        this.effects = {}; // Stores shields, freezes, etc.
         this.targetsOnlyBuildings = card.targetsBuildings || false;
     }
 
-    update() {
+update() {
         if (this.deployTimer > 0) { this.deployTimer--; return; }
-        if (this.attackCooldown > 0) this.attackCooldown--;
-        
-        // FIX: Re-verify target is still alive and in range
-        if (!this.target || this.target.health <= 0) {
-            this.findTarget();
+
+        // 1. Building Decay
+        if (this.card.category === 'Building' && this.totalDuration > 0) {
+            this.lifeTimer--; 
+            const decay = this.maxHealth / this.totalDuration;
+            this.health -= decay;
+            if (this.lifeTimer <= 0 || this.health <= 0) { this.health = 0; return; }
         }
+
+        // 2. Status Effects Expiry
+        if (this.effects.frozen) {
+            this.effects.frozen.duration--;
+            if (this.effects.frozen.duration <= 0) delete this.effects.frozen;
+            else return; // STOP if frozen
+        }
+        if (this.effects.haste) {
+            this.effects.haste.duration--;
+            if (this.effects.haste.duration <= 0) {
+                this.speed = this.card.speed; 
+                delete this.effects.haste;
+            }
+        }
+        if (this.effects.shield) {
+            this.effects.shield.duration--;
+            if (this.effects.shield.duration <= 0 || this.effects.shield.health <= 0) delete this.effects.shield;
+        }
+
+        // 3. Combat Logic
+        if (this.attackCooldown > 0) this.attackCooldown--;
+        if (this.abilityCooldownTimer > 0) this.abilityCooldownTimer--;
+
+        if (!this.target || this.target.health <= 0) this.findTarget();
 
         if (this.target) {
             const dist = distance(this.x, this.y, this.target.x, this.target.y);
-            // FIX: Units stop to attack if within range
             if (dist <= this.range + 5) { 
                 if (this.attackCooldown <= 0) { 
                     this.attack(this.target); 
                     this.attackCooldown = this.attackSpeed; 
                 }
-            } else { 
-                this.updateMovement(); 
-            }
-        } else { 
-            this.moveForward(); 
-        }
+            } else { this.updateMovement(); }
+        } else { this.moveForward(); }
     }
 
     updateMovement() {
         const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
-        
         let targetX = this.target.x;
         let targetY = this.target.y;
 
@@ -1324,19 +1397,37 @@ class Unit {
     moveForward() { this.y += (this.owner === 'player' ? -1 : 1) * this.speed * 0.5; }
 
     takeDamage(amount) { 
-        this.health = Math.max(0, this.health - amount); 
-        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, amount)); 
+        let actualDamage = amount;
+
+        // --- NEW: Shield Absorb Logic ---
+        if (this.effects.shield) {
+            if (this.effects.shield.health >= actualDamage) {
+                // Shield absorbs all damage
+                this.effects.shield.health -= actualDamage;
+                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, "Absorbed", "blue")); // Optional visual
+                return; // No health damage taken
+            } else {
+                // Shield breaks, remaining damage hits unit
+                actualDamage -= this.effects.shield.health;
+                delete this.effects.shield;
+                gameState.effects.push(new Effect(this.x, this.y, { effectType: 'explosion', radius: 20 })); // Visual break effect
+            }
+        }
+
+        this.health = Math.max(0, this.health - actualDamage); 
+        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, Math.round(actualDamage))); 
     }
 
     attack(target) { 
-        // FIX: Explicitly call takeDamage to ensure the Tower health reduces
         if (target && target.takeDamage) {
             target.takeDamage(this.damage); 
         }
     }
 
-draw() {
+    draw() {
         ctx.save();
+        
+        // Deploy Timer Visual
         if (this.deployTimer > 0) {
             const progress = this.deployTimer / 60;
             ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI * 2 * progress);
@@ -1345,13 +1436,10 @@ draw() {
             ctx.globalAlpha = 0.4;
         }
 
-        // --- MASTERY AESTHETICS (Level 5+) ---
+        // Mastery Glow
         if (this.level >= 5) {
             ctx.shadowBlur = 25;
-            // Golden for Mastery 1/2, Cyan for Mastery 3
             ctx.shadowColor = this.level >= 11 ? "#00fbff" : "#FFD700";
-            
-            // Tiny mastery badge next to the unit
             const rankIcon = this.level >= 11 ? "💎" : (this.level >= 8 ? "🔥" : "⭐");
             ctx.font = "10px sans-serif";
             ctx.fillText(rankIcon, this.x + 12, this.y - 12);
@@ -1360,11 +1448,62 @@ draw() {
             ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
         }
 
+        // Draw Emoji
         ctx.font = `${this.size * 1.6}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(this.card.emoji, this.x, this.y);
+
+        // --- NEW: Shield Visual ---
+        if (this.effects.shield) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.fill();
+        }
+// --- 5. NEW: Champion Ability Button ---
+        if (this.card.category === 'Champion' && this.owner === 'player') {
+            const btnSize = 12;
+            const btnX = this.x + 15;
+            const btnY = this.y + 15;
+            
+            // Draw cooldown pie chart or ready button
+            if (this.abilityCooldownTimer > 0) {
+                // Cooldown (Gray Pie Chart)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath(); ctx.moveTo(btnX, btnY);
+                const angle = (1 - (this.abilityCooldownTimer / this.card.abilityCooldown)) * Math.PI * 2;
+                ctx.arc(btnX, btnY, btnSize, -Math.PI/2, -Math.PI/2 + angle);
+                ctx.fill();
+            } else if (gameState.player.juice >= (this.card.abilityCost || 0)) {
+                // Ready! (Pulsing Purple Button)
+                const pulse = Math.sin(Date.now() / 100) * 2;
+                ctx.shadowBlur = 10; ctx.shadowColor = "#a855f7";
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize + pulse, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = "bold 10px sans-serif";
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText("⚡", btnX, btnY);
+                // Draw cost bubble
+                ctx.fillStyle = '#db2777'; 
+                ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
+            } else {
+                // Not enough Juice (Grayed out)
+                ctx.fillStyle = '#4b5563';
+                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
         ctx.restore();
         
+        // Health Bar
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
         ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
@@ -1868,38 +2007,46 @@ function loadPlayerData() {
     } else {
         // --- NEW PLAYER INITIALIZATION ---
         playerData = {
-            gold: 250, 
+            gold: 250,
+            xp: 0, // NEW: Experience Points
             cards: [],
-            deck: [0, 1, 10], 
+            deck: [0, 1, 10],
             wins: 0,
             stats: { towersDestroyed: 0, spellsCast: 0, troopsDeployed: 0, correctAnswers: 0, wrongAnswers: 0 },
             achievements: [],
             chests: [],
+            consumables: { streakSaver: 0 }, // NEW: For Tier 1 Perk
             activeMasteries: [],
             tutorialComplete: false,
             maxChestSlots: 4,
-            shop: { lastRefresh: null, items: [] } // FIX: Added shop for new players
+            shop: { lastRefresh: null, items: [] }
         };
     }
 
     // --- SAFETY CHECKS FOR EXISTING SAVES ---
+    // 1. Stats Safety
     if (!playerData.stats) playerData.stats = {};
     playerData.stats.correctAnswers = playerData.stats.correctAnswers || 0;
     playerData.stats.wrongAnswers = playerData.stats.wrongAnswers || 0;
     playerData.stats.towersDestroyed = playerData.stats.towersDestroyed || 0;
     playerData.stats.spellsCast = playerData.stats.spellsCast || 0;
     playerData.stats.troopsDeployed = playerData.stats.troopsDeployed || 0;
-    
-    // FIX: Shop Object Safety Check (Prevents the crash you saw)
+
+    // 2. New Progression Fields (Retroactive)
+    if (playerData.xp === undefined) playerData.xp = (playerData.wins || 0) * 50;
+    if (!playerData.consumables) playerData.consumables = { streakSaver: 0 };
+
+    // 3. Shop Safety
     if (!playerData.shop) {
         playerData.shop = { lastRefresh: null, items: [] };
     }
 
+    // 4. Chest Slots
     if (playerData.maxChestSlots === undefined) {
         playerData.maxChestSlots = 4;
     }
 
-    // Ensure all cards exist in collection and starters are unlocked
+    // 5. Ensure all cards exist in collection and starters are unlocked
     ALL_CARDS.forEach(c => {
         let existing = playerData.cards.find(pc => pc.id === c.id);
         if (!existing) {
@@ -1908,10 +2055,12 @@ function loadPlayerData() {
         }
     });
 
+    // 6. Deck Safety
     if (playerData.deck.length === 0) {
         playerData.deck = [0, 1, 10];
     }
 
+    // 7. Tutorial Safety
     if (playerData.tutorialComplete === undefined) {
         playerData.tutorialComplete = false;
     }
@@ -1919,9 +2068,10 @@ function loadPlayerData() {
     savePlayerData();
 
     if (!playerData.tutorialComplete) {
-        setTimeout(showTutorial, 1000); 
+        setTimeout(showTutorial, 1000);
     }
 }
+
 function renderDeckScreen() {
     document.getElementById('gold-display').textContent = playerData.gold;
     const battleDeckContainer = document.getElementById('battle-deck-container');
@@ -1985,25 +2135,24 @@ function renderShopScreen() {
     const now = new Date();
     const lastRefresh = playerData.shop.lastRefresh ? new Date(playerData.shop.lastRefresh) : null;
 
-    // 1. Check if we need to generate new deals (New Day Logic)
-    if (!lastRefresh || lastRefresh.getDate() !== now.getDate() || lastRefresh.getMonth() !== now.getMonth() || lastRefresh.getFullYear() !== now.getFullYear()) {
+    // --- FIX: Added check for empty items array ---
+    // If date changed OR items are empty, generate new ones
+    if (!lastRefresh || playerData.shop.items.length === 0 || lastRefresh.getDate() !== now.getDate() || lastRefresh.getMonth() !== now.getMonth() || lastRefresh.getFullYear() !== now.getFullYear()) {
         generateNewShopItems();
         playerData.shop.lastRefresh = now.toISOString();
         savePlayerData();
     }
 
-    // --- FIX: START THE TIMER ---
-    // This makes the "Deals refresh in..." text actually count down!
     if (window.shopInterval) clearInterval(window.shopInterval);
-    updateShopTimer(); // Run once immediately so it doesn't show 00:00:00
-    window.shopInterval = setInterval(updateShopTimer, 1000); // Tick every second
+    updateShopTimer(); 
+    window.shopInterval = setInterval(updateShopTimer, 1000); 
 
-    // 2. Clear and Render Items
     shopItemsContainer.innerHTML = '';
 
     playerData.shop.items.forEach(item => {
+        // Safety check: Ensure card exists in database
         const card = ALL_CARDS.find(c => c.id === item.cardId);
-        if (!card) return;
+        if (!card) return; 
 
         const cardEl = document.createElement('div');
         let borderColor = (card.cost >= 6 || card.category === 'Champion') ? '#a855f7' : (card.cost >= 4 ? '#63b3ed' : '#f0c040');
@@ -2011,7 +2160,6 @@ function renderShopScreen() {
         cardEl.className = 'shop-card';
         cardEl.style.borderColor = borderColor;
 
-        // Structured HTML to provide vertical spacing
         cardEl.innerHTML = `
             <div class="shop-item-emoji">${card.emoji}</div>
             <div class="flex-grow flex flex-col justify-center mb-6">
@@ -2025,17 +2173,14 @@ function renderShopScreen() {
         purchaseBtn.className = 'btn-wood w-full py-4 text-2xl transition-all';
 
         if (item.purchased) {
-            // State 1: Item already claimed/bought
             purchaseBtn.textContent = 'CLAIMED';
             purchaseBtn.disabled = true;
             purchaseBtn.classList.add('opacity-50', 'grayscale');
         } else if (item.isFree) {
-            // State 2: The Daily Free Gift (Green styling)
             purchaseBtn.innerHTML = `🎁 FREE GIFT`;
             purchaseBtn.classList.add('bg-green-600', 'hover:bg-green-500');
             purchaseBtn.onclick = () => buyShopItem(item);
         } else {
-            // State 3: Regular item with a gold cost
             purchaseBtn.innerHTML = `💰 ${item.cost}`;
             purchaseBtn.disabled = playerData.gold < item.cost;
             purchaseBtn.onclick = () => buyShopItem(item);
@@ -2329,8 +2474,37 @@ function playCard(card, x, y, owner, modifier) {
             }
             playerState.units.push(newUnit);
         }
-    } else if (card.category === 'Spell') {
-        // ... (Spell logic remains same, but ensure you delete the duplicate Appositive block)
+} else if (card.category === 'Spell') {
+        const targets = [...gameState.player.units, ...gameState.opponent.units];
+        
+        // 1. FREEZE SPELL
+        if (card.type.includes('Interjection') || card.type.includes('Freeze')) {
+            gameState.effects.push(new Effect(x, y, { effectType: 'freeze', radius: 100, duration: 60 }));
+            targets.forEach(u => {
+                if (distance(x, y, u.x, u.y) < 100 && u.owner !== owner) {
+                    u.applyStatus('frozen', 180); 
+                }
+            });
+        }
+        // 2. HASTE SPELL
+        else if (card.type.includes('Adverb') || card.type.includes('Haste')) {
+            gameState.effects.push(new Effect(x, y, { effectType: 'haste', radius: 100, duration: 60 }));
+            targets.forEach(u => {
+                if (distance(x, y, u.x, u.y) < 100 && u.owner === owner) {
+                    u.applyStatus('haste', 300); 
+                }
+            });
+        }
+        // 3. DAMAGE SPELL
+        else {
+            gameState.effects.push(new Effect(x, y, { effectType: 'explosion', radius: card.radius || 60, duration: 30 }));
+            const allTargets = [...targets, ...gameState.player.towers, ...gameState.opponent.towers];
+            allTargets.forEach(t => {
+                if (distance(x, y, t.x, t.y) < (card.radius || 60) && t.owner !== owner) {
+                    t.takeDamage(card.damage, true);
+                }
+            });
+        }
     }
 
     playerState.lastPlayedCard = card;
@@ -2451,88 +2625,109 @@ function showQuestion(card, x, y, handIndex, isRepeat = false) {
             questionModal.style.display = 'flex';
         }
 function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
-            questionModal.style.display = 'none';
-            const { card, x, y, handIndex, sentence } = gameState.pendingSpell;
+    questionModal.style.display = 'none';
+    const { card, x, y, handIndex, sentence } = gameState.pendingSpell;
 
-            // --- TRACKING LOGIC FOR "MY PROGRESS" ---
-            if (isCorrect) {
-                // Record a correct answer
-                playerData.stats.correctAnswers = (playerData.stats.correctAnswers || 0) + 1;
-                playCard(card, x, y, 'player', modifier);
-} else { 
-                // Record a wrong answer
-                playerData.stats.wrongAnswers = (playerData.stats.wrongAnswers || 0) + 1;
-                
-                // NEURAL LOCKOUT: Refund less juice and add a penalty
-                gameState.player.juice += card.cost / 4; // Only 25% refund
-                gameState.player.neuralLockout = 180; // 3 second cooldown (60 fps * 3)
+    if (isCorrect) {
+        // --- CORRECT ANSWER ---
+        playerData.stats.correctAnswers = (playerData.stats.correctAnswers || 0) + 1;
+        playCard(card, x, y, 'player', modifier);
+    } else {
+        // --- WRONG ANSWER ---
+        playerData.stats.wrongAnswers = (playerData.stats.wrongAnswers || 0) + 1;
 
-                if (sentence) {
-                    feedbackText.innerHTML = `NEURAL LINK SEVERED! <br> Correct answer: <strong class="text-yellow-400">"${sentence.a[0]}"</strong>.`;
-                    feedbackModal.style.display = 'flex';
-                }
-            }
-            
-            // --- CYCLE THE CARD ---
-            const [playedCard] = gameState.player.hand.splice(handIndex, 1);
-            gameState.player.discard.push(playedCard);
-            drawCard('player');
+        // --- NEW: TIER 1 PERK (Streak Saver) ---
+        // Level 3+ players have a 20% chance to ignore the penalty
+        const currentLvl = getLevelFromXP(playerData.xp);
+        let savedByPerk = false;
 
-            gameState.pendingSpell = null; 
-            gameState.player.handKey++;
-            savePlayerData(); // Save the new stats immediately
+        if (currentLvl >= 3 && Math.random() > 0.8) {
+            savedByPerk = true;
         }
 
+        if (savedByPerk) {
+            // SAVED! Full refund, no lockout
+            gameState.player.juice += card.cost;
+            feedbackText.innerHTML = `TIER PERK ACTIVATED! <br> <span class="text-green-400">Streak Saver prevented the lockout!</span>`;
+            feedbackModal.style.display = 'flex';
+        } else {
+            // NOT SAVED (Standard Penalty)
+            gameState.player.juice += card.cost / 4; // Only 25% refund
+            gameState.player.neuralLockout = 180; // 3 second penalty
+
+            if (sentence) {
+                feedbackText.innerHTML = `NEURAL LINK SEVERED! <br> Correct answer: <strong class="text-yellow-400">"${sentence.a[0]}"</strong>.`;
+                feedbackModal.style.display = 'flex';
+            }
+        }
+    }
+
+    // --- CYCLE THE CARD ---
+    const [playedCard] = gameState.player.hand.splice(handIndex, 1);
+    gameState.player.discard.push(playedCard);
+    drawCard('player');
+
+    gameState.pendingSpell = null;
+    gameState.player.handKey++;
+    savePlayerData();
+}
+
 function endGame(message) {
-    if (gameState.gameOver) return; 
-    gameState.gameOver = true; 
-    
-    if (animationFrameId) cancelAnimationFrame(animationFrameId); 
-    
+    if (gameState.gameOver) return;
+    gameState.gameOver = true;
+
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
     playerUiPanel.style.display = 'none';
     emotePanel.style.display = 'none';
-    
-    // --- FIX: CROWN LOGIC ---
+
+    // --- CROWN LOGIC ---
     const oppKing = gameState.opponent.towers.find(t => t.isKing);
     const isKingDead = !oppKing || oppKing.health <= 0;
 
     let crownsWon = 0;
     let isWin = false;
 
-    // Check if we won
+    // Check winning condition
     if (isKingDead || message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
         isWin = true;
-        
-        if (isKingDead) {
-            // RULE: If King dies, it is ALWAYS a 3-Crown win
-            crownsWon = 3;
-        } else {
-            // If King is alive (time ran out), calculate based on missing side towers
-            crownsWon = 3 - gameState.opponent.towers.length;
-        }
-    } else { 
-        // If we lost, we still get credit for any towers we managed to destroy
+        crownsWon = isKingDead ? 3 : (3 - gameState.opponent.towers.length);
+    } else {
         crownsWon = 3 - gameState.opponent.towers.length;
     }
 
     let totalGold = 0;
 
     if (isWin) {
-        // REWARD: 50 Win Bonus + 25 per Crown
-        // A King Kill (3 crowns) = 50 + 75 = 125 Gold
-        totalGold = 50 + (crownsWon * 25);
+        // --- NEW: TIER 2 PERK (Gold Multiplier) ---
+        // If player is Level 6 or higher, they get 1.2x Gold
+        const currentLvl = getLevelFromXP(playerData.xp);
+        let multiplier = 1.0;
+        if (currentLvl >= 6) multiplier = 1.2;
 
-        gameOverText.textContent = "Grammatical Victory!"; // Force victory text if King died
+        // Calculate Rewards
+        totalGold = Math.floor((50 + (crownsWon * 25)) * multiplier);
+        const xpGained = 50 + (crownsWon * 10);
+
+        // Apply Rewards
+        playerData.gold += totalGold;
+        playerData.xp += xpGained;
+        playerData.wins++;
+        playerData.stats.towersDestroyed += crownsWon;
+
+        // Visuals
+        gameOverText.textContent = "Grammatical Victory!";
         gameOverText.className = 'game-message text-green-400 bangers-font';
         spawnConfetti();
-        
-        let rewardMessage = `You earned ${totalGold} GG!`;
+
+        let rewardMessage = `You earned ${totalGold} GG | +${xpGained} XP`;
+
+        // Chest Logic
         const chestType = getRandomChestType();
-        
         if (playerData.chests.length < playerData.maxChestSlots) {
-            playerData.chests.push({ 
-                type: chestType, 
-                earnTime: Date.now(), 
+            playerData.chests.push({
+                type: chestType,
+                earnTime: Date.now(),
                 unlockStartTime: null,
                 boosted: false
             });
@@ -2542,22 +2737,22 @@ function endGame(message) {
         }
 
         goldWonText.textContent = rewardMessage;
-        
+
+    } else {
+        // --- DEFEAT LOGIC ---
+        // Small consolation prize
+        totalGold = 20 + (crownsWon * 10);
+        const xpGained = 10; // Small XP gain for participating
+
         playerData.gold += totalGold;
-        playerData.wins++;
-        playerData.stats.towersDestroyed += crownsWon; 
-        
-    } else { 
-        totalGold = 20 + (crownsWon * 10); 
-        
-        gameOverText.textContent = message === "Grammatical Victory!" ? "Deconstructed!" : message;
-        goldWonText.textContent = `Defeat... but you earned ${totalGold} GG.`;
-        gameOverText.className = 'game-message text-red-500 bangers-font';
-        
-        playerData.gold += totalGold;
+        playerData.xp += xpGained;
         playerData.stats.towersDestroyed += crownsWon;
+
+        gameOverText.textContent = message === "Grammatical Victory!" ? "Deconstructed!" : message;
+        goldWonText.textContent = `Defeat... but you earned ${totalGold} GG | +${xpGained} XP`;
+        gameOverText.className = 'game-message text-red-500 bangers-font';
     }
-    
+
     savePlayerData();
     gameOverMessage.style.display = 'flex';
 }
@@ -2655,58 +2850,79 @@ proofreadParagraph.querySelectorAll('.error-word').forEach(wordEl => {
         }
        
 function renderStatsScreen() {
-            const totalQuestions = (playerData.stats.correctAnswers || 0) + (playerData.stats.wrongAnswers || 0);
-            const accuracy = totalQuestions > 0 ? Math.round((playerData.stats.correctAnswers / totalQuestions) * 100) : 0;
-            const rank = playerData.wins >= 10 ? "Syntax Overlord" : (playerData.wins >= 5 ? "Clause Commander" : "Noun Novice");
+    const currentLevel = getLevelFromXP(playerData.xp);
+    const currentTier = getCurrentTier(currentLevel);
+    // Calculate progress within the current level (0% to 100%)
+    const progressPercent = ((playerData.xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100;
+    const xpNeeded = XP_PER_LEVEL - (playerData.xp % XP_PER_LEVEL);
 
-            // Fill only the stats part
-            statsContent.innerHTML = `
-                <div class="col-span-2 glass-panel p-6 rounded-3xl mb-2 border-b-4 border-yellow-500">
-                    <div class="flex items-center gap-6">
-                        <div class="text-6xl">👨‍🚀</div>
-                        <div>
-                            <h2 class="bangers-font text-3xl text-white">UNIT: GG_PILOT</h2>
-                            <p class="text-blue-400 font-bold uppercase tracking-widest text-sm">${rank}</p>
-                        </div>
-                        <div class="ml-auto text-right">
-                            <div class="text-[10px] text-gray-400 uppercase">Neural Precision</div>
-                            <div class="text-3xl bangers-font text-pink-500">${accuracy}%</div>
+    // 1. Header with Current Status
+    let html = `
+        <div class="col-span-2 glass-panel p-6 rounded-3xl mb-6 border-b-4 ${currentTier.border} relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 text-9xl">${currentTier.emoji}</div>
+            <div class="flex items-center gap-6 relative z-10">
+                <div class="text-6xl bg-gray-900 rounded-full w-24 h-24 flex items-center justify-center border-4 ${currentTier.border} shadow-lg">
+                    ${currentLevel}
+                </div>
+                <div class="flex-grow">
+                    <h2 class="bangers-font text-3xl text-white uppercase tracking-wider drop-shadow-md">${currentTier.name}</h2>
+                    <div class="text-gray-300 text-sm mb-2">Total XP: <span class="text-yellow-400 font-bold">${playerData.xp}</span></div>
+                    
+                    <div class="w-full bg-gray-700 h-6 rounded-full overflow-hidden border border-gray-600 relative">
+                        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">
+                            ${Math.floor(progressPercent)}%
                         </div>
                     </div>
-                </div>
-                <div class="bg-slate-800 border border-blue-500/30 p-4 rounded-2xl text-center shadow-lg">
-                    <div class="bangers-font text-lg text-blue-300 uppercase">Wins</div>
-                    <div class="text-3xl font-bold text-white">${playerData.wins}</div>
-                </div>
-                <div class="bg-slate-800 border border-red-500/30 p-4 rounded-2xl text-center shadow-lg">
-                    <div class="bangers-font text-lg text-red-400 uppercase">Towers</div>
-                    <div class="text-3xl font-bold text-white">${playerData.stats.towersDestroyed}</div>
-                </div>
-            `;
-
-            // Fill only the achievements part
-            achievementsContent.innerHTML = '';
-            ALL_ACHIEVEMENTS.forEach(ach => {
-                const isUnlocked = ach.isUnlocked(playerData);
-                if (isUnlocked && !playerData.achievements.includes(ach.id)) {
-                    playerData.achievements.push(ach.id);
-                    playerData.gold += ach.reward;
-                    savePlayerData();
-                }
-                const isClaimed = playerData.achievements.includes(ach.id);
-                const achievementEl = document.createElement('div');
-                achievementEl.className = `p-4 rounded-2xl flex items-center gap-4 border ${isClaimed ? 'bg-green-500/5 border-green-500/40' : 'bg-gray-800/40 border-white/5 opacity-50'}`;
-                achievementEl.innerHTML = `
-                    <div class="text-3xl">${isClaimed ? '🏆' : '🔒'}</div>
-                    <div class="flex-grow">
-                        <h4 class="bangers-font text-lg ${isClaimed ? 'text-yellow-400' : 'text-gray-500'}">${ach.name}</h4>
-                        <p class="text-[10px] ${isClaimed ? 'text-blue-100' : 'text-gray-600'}">${ach.desc}</p>
+                    
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Lvl ${currentLevel}</span>
+                        <span>${xpNeeded} XP to Lvl ${currentLevel + 1}</span>
                     </div>
-                    <div class="bangers-font text-sm ${isClaimed ? 'text-green-400' : 'text-gray-600'}">${isClaimed ? 'DONE' : `💰 ${ach.reward}`}</div>
-                `;
-                achievementsContent.appendChild(achievementEl);
-            });
-        }
+                </div>
+            </div>
+        </div>
+
+        <h3 class="bangers-font text-3xl text-yellow-300 mb-4 border-b border-yellow-500/30 pb-2 col-span-2">Your Journey</h3>
+        <div class="col-span-2 space-y-4 pb-8">
+    `;
+
+    // 2. Render the Roadmap (Tiers)
+    TIER_DATA.forEach(tier => {
+        const isUnlocked = currentLevel >= tier.range[0];
+        const isCompleted = currentLevel > tier.range[1];
+        const isActive = isUnlocked && !isCompleted;
+        
+        let opacityClass = isUnlocked ? "opacity-100" : "opacity-40 grayscale";
+        let statusIcon = isCompleted ? "✅" : (isUnlocked ? "📍" : "🔒");
+        let borderClass = isActive ? "border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]" : tier.border;
+        
+        html += `
+            <div class="glass-panel p-4 rounded-xl border-l-4 ${borderClass} ${opacityClass} flex items-center gap-4 transition-all hover:scale-[1.02]">
+                <div class="text-4xl filter drop-shadow-md">${tier.emoji}</div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-center">
+                        <h4 class="bangers-font text-xl ${tier.color}">${tier.name}</h4>
+                        <span class="text-xs bg-gray-900 px-2 py-1 rounded text-white border border-gray-600">Lvl ${tier.range[0]} - ${tier.range[1]}</span>
+                    </div>
+                    <p class="text-sm text-gray-300 mt-1">
+                        <span class="text-yellow-400 font-bold">Perk:</span> ${tier.perk}
+                    </p>
+                    ${isActive ? `<div class="text-xs text-blue-300 mt-2 font-bold animate-pulse">● CURRENT REGION</div>` : ''}
+                </div>
+                <div class="text-2xl">${statusIcon}</div>
+            </div>
+        `;
+    });
+
+    html += `</div>`; // Close container
+
+    // Inject into the stats content area
+    statsContent.innerHTML = html;
+    
+    // Clear achievements section to keep the UI clean
+    achievementsContent.innerHTML = `<div class="text-gray-500 text-center italic mt-4">Achievements are now tracked in your Profile Badge!</div>`;
+}
 
         // --- Event Listeners ---
 function returnToHome() {
@@ -2721,7 +2937,18 @@ function handleCanvasClick(e) {
     if (gameState.gameOver) return;
     const pos = getCanvasPos(e);
 
-    // 1. Home button check
+    // 1. Champion Ability Clicks
+    const champions = gameState.player.units.filter(u => u.card.category === 'Champion');
+    for (const champ of champions) {
+        const btnX = champ.x + 15;
+        const btnY = champ.y + 15;
+        if (distance(pos.x, pos.y, btnX, btnY) < 20) {
+            activateChampionAbility(champ);
+            return; 
+        }
+    }
+
+    // 2. Home button check
     const hb = HOME_BUTTON;
     if (pos.x > hb.x - hb.width / 2 && pos.x < hb.x + hb.width / 2 &&
         pos.y > hb.y - hb.height / 2 && pos.y < hb.y + hb.height / 2) {
@@ -2729,12 +2956,11 @@ function handleCanvasClick(e) {
         return; 
     }
 
-    // 2. Placement Logic
+    // 3. Placement Logic
     if (gameState.selectedCard) {
         const { card, index } = gameState.selectedCard;
         const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
 
-        // Restriction: Troops must stay below river
         if (card.category !== 'Spell' && pos.y < RIVER_Y) return;
 
         if (card.category === 'Spell' || isRepeat) {
@@ -2848,9 +3074,6 @@ function handleCanvasClick(e) {
        
 canvas.addEventListener('click', handleCanvasClick);
 window.addEventListener('resize', resizeCanvas);
-       
-        window.addEventListener('resize', resizeCanvas);
-
 
         // --- CHEST FUNCTIONS ---
         function renderHomeScreen() {
@@ -3153,6 +3376,8 @@ function showTutorial() {
     }
     renderStep();
 }
+
+
     </script>
 </body>
 </html>

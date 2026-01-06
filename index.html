@@ -1303,11 +1303,80 @@ const EXTENDED_QUESTIONS = [
 CHALLENGE_QUESTIONS_DATABASE.push(...EXTENDED_QUESTIONS);
        
 const ALL_ACHIEVEMENTS = [
-            { id: 'first_win', name: 'First Victory', desc: 'Win your first match.', reward: 100, isUnlocked: (p) => p.wins > 0 },
-            { id: 'precision_ace', name: 'Neural Link Ace', desc: 'Maintain 90%+ Accuracy over 10 questions.', reward: 300, isUnlocked: (p) => (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.9 && (p.stats.correctAnswers + p.stats.wrongAnswers) >= 10 },
-            { id: 'spell_slinger', name: 'Syntactic Striker', desc: 'Cast 50 linked spells.', reward: 150, isUnlocked: (p) => p.stats.spellsCast >= 50 },
-            { id: 'arena_master', name: 'Clause Commander', desc: 'Reach the Spooky Library (5 wins).', reward: 250, isUnlocked: (p) => p.wins >= 5 },
-        ];
+    // --- CATEGORY 1: VICTORIES (The Warrior) ---
+    { id: 'win_1', name: 'First Blood', desc: 'Win your first battle.', reward: 50, isUnlocked: (p) => p.wins >= 1 },
+    { id: 'win_10', name: 'Battle Hardened', desc: 'Win 10 battles.', reward: 100, isUnlocked: (p) => p.wins >= 10 },
+    { id: 'win_25', name: 'Veteran Commander', desc: 'Win 25 battles.', reward: 250, isUnlocked: (p) => p.wins >= 25 },
+    { id: 'win_50', name: 'Arena Warlord', desc: 'Win 50 battles.', reward: 500, isUnlocked: (p) => p.wins >= 50 },
+    { id: 'win_100', name: 'Supreme Champion', desc: 'Win 100 battles.', reward: 1000, isUnlocked: (p) => p.wins >= 100 },
+
+    // --- CATEGORY 2: EXPERIENCE (The Scholar) ---
+    { id: 'lvl_2', name: 'Novice Scribe', desc: 'Reach Player Level 2.', reward: 50, isUnlocked: (p) => getLevelFromXP(p.xp) >= 2 },
+    { id: 'lvl_5', name: 'Apprentice Poet', desc: 'Reach Player Level 5.', reward: 150, isUnlocked: (p) => getLevelFromXP(p.xp) >= 5 },
+    { id: 'lvl_8', name: 'Journeyman Author', desc: 'Reach Player Level 8.', reward: 300, isUnlocked: (p) => getLevelFromXP(p.xp) >= 8 },
+    { id: 'lvl_10', name: 'Master Linguist', desc: 'Reach Player Level 10.', reward: 500, isUnlocked: (p) => getLevelFromXP(p.xp) >= 10 },
+    { id: 'lvl_13', name: 'Grandmaster Bard', desc: 'Reach Max Level (13).', reward: 1000, isUnlocked: (p) => getLevelFromXP(p.xp) >= 13 },
+
+    // --- CATEGORY 3: WEALTH (The Merchant) ---
+    { id: 'gold_1k', name: 'Pocket Change', desc: 'Hold 1,000 Gold at once.', reward: 100, isUnlocked: (p) => p.gold >= 1000 },
+    { id: 'gold_5k', name: 'Tuition Savings', desc: 'Hold 5,000 Gold at once.', reward: 200, isUnlocked: (p) => p.gold >= 5000 },
+    { id: 'gold_10k', name: 'Grant Money', desc: 'Hold 10,000 Gold at once.', reward: 500, isUnlocked: (p) => p.gold >= 10000 },
+    { id: 'gold_50k', name: 'Endowment Fund', desc: 'Hold 50,000 Gold at once.', reward: 1000, isUnlocked: (p) => p.gold >= 50000 },
+    { id: 'gold_100k', name: 'Tycoon', desc: 'Hold 100,000 Gold at once.', reward: 2000, isUnlocked: (p) => p.gold >= 100000 },
+
+    // --- CATEGORY 4: DESTRUCTION (The Siegemaster) ---
+    { id: 'tower_10', name: 'Gate Crasher', desc: 'Destroy 10 Enemy Towers.', reward: 50, isUnlocked: (p) => p.stats.towersDestroyed >= 10 },
+    { id: 'tower_50', name: 'Wall Breaker', desc: 'Destroy 50 Enemy Towers.', reward: 150, isUnlocked: (p) => p.stats.towersDestroyed >= 50 },
+    { id: 'tower_100', name: 'Castle Crusher', desc: 'Destroy 100 Enemy Towers.', reward: 300, isUnlocked: (p) => p.stats.towersDestroyed >= 100 },
+    { id: 'tower_500', name: 'Empire Toppler', desc: 'Destroy 500 Enemy Towers.', reward: 600, isUnlocked: (p) => p.stats.towersDestroyed >= 500 },
+    { id: 'tower_1000', name: 'The Destroyer', desc: 'Destroy 1,000 Enemy Towers.', reward: 1500, isUnlocked: (p) => p.stats.towersDestroyed >= 1000 },
+
+    // --- CATEGORY 5: SPELLCASTING (The Wizard) ---
+    { id: 'spell_10', name: 'Spark', desc: 'Cast 10 Spells.', reward: 25, isUnlocked: (p) => p.stats.spellsCast >= 10 },
+    { id: 'spell_50', name: 'Thunder', desc: 'Cast 50 Spells.', reward: 100, isUnlocked: (p) => p.stats.spellsCast >= 50 },
+    { id: 'spell_200', name: 'Storm', desc: 'Cast 200 Spells.', reward: 250, isUnlocked: (p) => p.stats.spellsCast >= 200 },
+    { id: 'spell_500', name: 'Cataclysm', desc: 'Cast 500 Spells.', reward: 500, isUnlocked: (p) => p.stats.spellsCast >= 500 },
+    { id: 'spell_1000', name: 'Archmage', desc: 'Cast 1,000 Spells.', reward: 1000, isUnlocked: (p) => p.stats.spellsCast >= 1000 },
+
+    // --- CATEGORY 6: DEPLOYMENT (The General) ---
+    { id: 'troop_50', name: 'Recruiter', desc: 'Deploy 50 Troops.', reward: 50, isUnlocked: (p) => p.stats.troopsDeployed >= 50 },
+    { id: 'troop_200', name: 'Drill Sergeant', desc: 'Deploy 200 Troops.', reward: 150, isUnlocked: (p) => p.stats.troopsDeployed >= 200 },
+    { id: 'troop_500', name: 'Commander', desc: 'Deploy 500 Troops.', reward: 300, isUnlocked: (p) => p.stats.troopsDeployed >= 500 },
+    { id: 'troop_2000', name: 'General', desc: 'Deploy 2,000 Troops.', reward: 750, isUnlocked: (p) => p.stats.troopsDeployed >= 2000 },
+    { id: 'troop_5000', name: 'Legendary Leader', desc: 'Deploy 5,000 Troops.', reward: 1500, isUnlocked: (p) => p.stats.troopsDeployed >= 5000 },
+
+    // --- CATEGORY 7: COLLECTION (The Librarian) ---
+    // Checks how many cards are unlocked (unlocked = true)
+    { id: 'coll_5', name: 'Bookworm', desc: 'Unlock 5 different Cards.', reward: 50, isUnlocked: (p) => p.cards.filter(c => c.unlocked).length >= 5 },
+    { id: 'coll_10', name: 'Researcher', desc: 'Unlock 10 different Cards.', reward: 100, isUnlocked: (p) => p.cards.filter(c => c.unlocked).length >= 10 },
+    { id: 'coll_20', name: 'Collector', desc: 'Unlock 20 different Cards.', reward: 250, isUnlocked: (p) => p.cards.filter(c => c.unlocked).length >= 20 },
+    { id: 'coll_30', name: 'Curator', desc: 'Unlock 30 different Cards.', reward: 500, isUnlocked: (p) => p.cards.filter(c => c.unlocked).length >= 30 },
+    { id: 'coll_all', name: 'Grand Archivist', desc: 'Unlock 40+ Cards.', reward: 1000, isUnlocked: (p) => p.cards.filter(c => c.unlocked).length >= 40 },
+
+    // --- CATEGORY 8: MASTERY (The Blacksmith) ---
+    // Checks if you have at least one card at a specific level
+    { id: 'ups_2', name: 'Polished', desc: 'Upgrade any card to Level 2.', reward: 50, isUnlocked: (p) => p.cards.some(c => c.level >= 2) },
+    { id: 'ups_5', name: 'Sharpened', desc: 'Upgrade any card to Level 5.', reward: 150, isUnlocked: (p) => p.cards.some(c => c.level >= 5) },
+    { id: 'ups_8', name: 'Forged', desc: 'Upgrade any card to Level 8.', reward: 300, isUnlocked: (p) => p.cards.some(c => c.level >= 8) },
+    { id: 'ups_10', name: 'Enchanted', desc: 'Upgrade any card to Level 10.', reward: 600, isUnlocked: (p) => p.cards.some(c => c.level >= 10) },
+    { id: 'ups_13', name: 'Mythic', desc: 'Upgrade any card to Max Level (13).', reward: 1200, isUnlocked: (p) => p.cards.some(c => c.level >= 13) },
+
+    // --- CATEGORY 9: ACCURACY (The Editor) ---
+    // Checks total correct answers
+    { id: 'ans_10', name: 'Proofreader', desc: 'Answer 10 Grammar Links correctly.', reward: 50, isUnlocked: (p) => p.stats.correctAnswers >= 10 },
+    { id: 'ans_50', name: 'Copy Editor', desc: 'Answer 50 Grammar Links correctly.', reward: 150, isUnlocked: (p) => p.stats.correctAnswers >= 50 },
+    { id: 'ans_100', name: 'Journalist', desc: 'Answer 100 Grammar Links correctly.', reward: 300, isUnlocked: (p) => p.stats.correctAnswers >= 100 },
+    { id: 'ans_500', name: 'Editor-in-Chief', desc: 'Answer 500 Grammar Links correctly.', reward: 750, isUnlocked: (p) => p.stats.correctAnswers >= 500 },
+    { id: 'ans_1000', name: 'Syntax Sage', desc: 'Answer 1,000 Grammar Links correctly.', reward: 1500, isUnlocked: (p) => p.stats.correctAnswers >= 1000 },
+
+    // --- CATEGORY 10: PRECISION (The Sniper) ---
+    // Checks ratio: Correct / (Correct + Wrong). Minimum 20 attempts.
+    { id: 'acc_50', name: 'Coin Flip', desc: 'Maintain >50% Accuracy (min 20 attempts).', reward: 50, isUnlocked: (p) => (p.stats.correctAnswers + p.stats.wrongAnswers) >= 20 && (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.5 },
+    { id: 'acc_75', name: 'Sharp Mind', desc: 'Maintain >75% Accuracy (min 20 attempts).', reward: 150, isUnlocked: (p) => (p.stats.correctAnswers + p.stats.wrongAnswers) >= 20 && (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.75 },
+    { id: 'acc_85', name: 'Eagle Eye', desc: 'Maintain >85% Accuracy (min 50 attempts).', reward: 300, isUnlocked: (p) => (p.stats.correctAnswers + p.stats.wrongAnswers) >= 50 && (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.85 },
+    { id: 'acc_90', name: 'Neural Link', desc: 'Maintain >90% Accuracy (min 100 attempts).', reward: 600, isUnlocked: (p) => (p.stats.correctAnswers + p.stats.wrongAnswers) >= 100 && (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.90 },
+    { id: 'acc_95', name: 'Human Dictionary', desc: 'Maintain >95% Accuracy (min 100 attempts).', reward: 1500, isUnlocked: (p) => (p.stats.correctAnswers + p.stats.wrongAnswers) >= 100 && (p.stats.correctAnswers / (p.stats.correctAnswers + p.stats.wrongAnswers)) >= 0.95 }
+];
 
 
         // --- Classes ---
@@ -2271,13 +2340,16 @@ function loadPlayerData() {
     }
 
     // --- SAFETY CHECKS FOR EXISTING SAVES ---
-    // 1. Stats Safety
+// 1. Stats Safety
     if (!playerData.stats) playerData.stats = {};
     playerData.stats.correctAnswers = playerData.stats.correctAnswers || 0;
     playerData.stats.wrongAnswers = playerData.stats.wrongAnswers || 0;
     playerData.stats.towersDestroyed = playerData.stats.towersDestroyed || 0;
     playerData.stats.spellsCast = playerData.stats.spellsCast || 0;
     playerData.stats.troopsDeployed = playerData.stats.troopsDeployed || 0;
+    
+    // Ensure Achievement Array exists
+    if (!playerData.achievements) playerData.achievements = [];
 
     // 2. New Progression Fields (Retroactive)
     if (playerData.xp === undefined) playerData.xp = (playerData.wins || 0) * 50;
@@ -2688,16 +2760,26 @@ function playCard(card, x, y, owner, modifier) {
     const playerState = gameState[owner];
     const now = Date.now();
     
+    // --- TRACKING LOGIC (For Achievements) ---
     if (owner === 'player') {
-        juiceFlash.style.opacity = '1';
-        setTimeout(() => { juiceFlash.style.opacity = '0'; }, 100);
+        // Visual feedback for playing a card
+        if (juiceFlash) {
+            juiceFlash.style.opacity = '1';
+            setTimeout(() => { juiceFlash.style.opacity = '0'; }, 100);
+        }
         
-        if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') playerData.stats.troopsDeployed++;
-        if (card.category === 'Spell') playerData.stats.spellsCast++;
+        // Count Stats
+        if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
+            playerData.stats.troopsDeployed++;
+        }
+        if (card.category === 'Spell') {
+            playerData.stats.spellsCast++;
+        }
     }
     
     // --- CHECK FOR COMBOS / SYNERGIES ---
     let synergyEffect = null;
+    // ... (rest of the function continues as normal) ...
     if (owner === 'player' && playerState.lastPlayedCard && (now - playerState.lastPlayedTime < 8000)) {
         const last = playerState.lastPlayedCard;
         const current = card;
@@ -3441,73 +3523,97 @@ canvas.addEventListener('click', handleCanvasClick);
 window.addEventListener('resize', resizeCanvas);
 
         // --- CHEST FUNCTIONS ---
-        function renderHomeScreen() {
-            chestSlotsContainer.innerHTML = '';
-            for (let i = 0; i < playerData.maxChestSlots; i++) {
-                const chest = playerData.chests[i];
-                const slotEl = document.createElement('div');
-                slotEl.className = 'w-24 h-28 border-2 rounded-lg flex flex-col items-center justify-center text-center cursor-pointer bg-gray-800 bg-opacity-70 relative';
-               
-                if (chest) {
-                    const chestInfo = CHEST_TYPES[chest.type];
-                    slotEl.classList.add(chestInfo.borderColor);
-                    slotEl.innerHTML = `<div class="text-5xl">${chestInfo.emoji}</div>`;
-                    const timeNow = Date.now();
+function renderHomeScreen() {
+    // 1. RENDER CHEST SLOTS (Existing Code)
+    chestSlotsContainer.innerHTML = '';
+    for (let i = 0; i < playerData.maxChestSlots; i++) {
+        const chest = playerData.chests[i];
+        const slotEl = document.createElement('div');
+        slotEl.className = 'w-24 h-28 border-2 rounded-lg flex flex-col items-center justify-center text-center cursor-pointer bg-gray-800 bg-opacity-70 relative';
+        
+        if (chest) {
+            const chestInfo = CHEST_TYPES[chest.type];
+            slotEl.classList.add(chestInfo.borderColor);
+            slotEl.innerHTML = `<div class="text-5xl">${chestInfo.emoji}</div>`;
+            const timeNow = Date.now();
 
-                    if (chest.unlockStartTime) {
-                        let unlockDuration = chestInfo.unlockDuration;
-                        if (chest.boosted) {
-                           unlockDuration /= 2;
-                        }
-                       
-                        const timeElapsed = timeNow - chest.unlockStartTime;
-                        let timeRemaining = unlockDuration - timeElapsed;
+            if (chest.unlockStartTime) {
+                let unlockDuration = chestInfo.unlockDuration;
+                if (chest.boosted) unlockDuration /= 2;
+                
+                const timeElapsed = timeNow - chest.unlockStartTime;
+                let timeRemaining = unlockDuration - timeElapsed;
 
-                        if (timeRemaining > 0) {
-                            const hours = Math.floor(timeRemaining / 3600000);
-                            const minutes = Math.floor((timeRemaining % 3600000) / 60000);
-                            const seconds = Math.floor((timeRemaining % 60000) / 1000);
-                            slotEl.innerHTML += `<div class="bangers-font text-sm">${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s</div>`;
-                            slotEl.classList.add('border-yellow-400');
-                           
-                            if(!chest.boosted) {
-                                const boostBtn = document.createElement('button');
-                                boostBtn.className = 'absolute bottom-1 left-1 bg-purple-600 rounded-full w-6 h-6 text-xs flex items-center justify-center';
-                                boostBtn.textContent = '⚡';
-                                boostBtn.onclick = (e) => {
-                                    e.stopPropagation();
-                                    showChallengeQuestion(i);
-                                };
-                                slotEl.appendChild(boostBtn);
-                            }
-                        } else {
-                            slotEl.innerHTML += `<div class="bangers-font text-green-400">Ready!</div>`;
-                            slotEl.classList.add('border-green-400', 'animate-pulse');
-                            slotEl.onclick = () => openChest(i);
-                        }
-                    } else {
-                        slotEl.innerHTML += `<div class="bangers-font text-sm">${chest.type}</div><div class="bangers-font text-yellow-300 text-xs mt-1">Tap to unlock</div>`;
-                        slotEl.onclick = () => startUnlockingChest(i);
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'absolute top-1 right-1 bg-red-600 rounded-full w-6 h-6 text-xs flex items-center justify-center';
-                        deleteBtn.textContent = '🗑️';
-                        deleteBtn.onclick = (e) => {
+                if (timeRemaining > 0) {
+                    const hours = Math.floor(timeRemaining / 3600000);
+                    const minutes = Math.floor((timeRemaining % 3600000) / 60000);
+                    const seconds = Math.floor((timeRemaining % 60000) / 1000);
+                    slotEl.innerHTML += `<div class="bangers-font text-sm">${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s</div>`;
+                    slotEl.classList.add('border-yellow-400');
+                    
+                    if(!chest.boosted) {
+                        const boostBtn = document.createElement('button');
+                        boostBtn.className = 'absolute bottom-1 left-1 bg-purple-600 rounded-full w-6 h-6 text-xs flex items-center justify-center border border-white';
+                        boostBtn.textContent = '⚡';
+                        boostBtn.onclick = (e) => {
                             e.stopPropagation();
-                            showConfirmationModal("Are you sure you want to discard this chest?", () => {
-                                playerData.chests.splice(i, 1);
-                                savePlayerData();
-                                renderHomeScreen();
-                            });
+                            showChallengeQuestion(i);
                         };
-                        slotEl.appendChild(deleteBtn);
+                        slotEl.appendChild(boostBtn);
                     }
                 } else {
-                    slotEl.innerHTML = `<span class="text-gray-600">Empty Slot</span>`;
-                    slotEl.classList.add('border-dashed', 'border-gray-500');
+                    slotEl.innerHTML += `<div class="bangers-font text-green-400">Ready!</div>`;
+                    slotEl.classList.add('border-green-400', 'animate-pulse');
+                    slotEl.onclick = () => openChest(i);
                 }
-                chestSlotsContainer.appendChild(slotEl);
+            } else {
+                slotEl.innerHTML += `<div class="bangers-font text-sm">${chest.type}</div><div class="bangers-font text-yellow-300 text-xs mt-1">Tap to unlock</div>`;
+                slotEl.onclick = () => startUnlockingChest(i);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'absolute top-1 right-1 bg-red-600 rounded-full w-6 h-6 text-xs flex items-center justify-center border border-white';
+                deleteBtn.textContent = 'X';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    showConfirmationModal("Discard this chest?", () => {
+                        playerData.chests.splice(i, 1);
+                        savePlayerData();
+                        renderHomeScreen();
+                    });
+                };
+                slotEl.appendChild(deleteBtn);
             }
+        } else {
+            slotEl.innerHTML = `<span class="text-gray-600">Empty Slot</span>`;
+            slotEl.classList.add('border-dashed', 'border-gray-500');
         }
+        chestSlotsContainer.appendChild(slotEl);
+    }
+
+    // 2. NEW: ACHIEVEMENT NOTIFICATION LOGIC
+    // Check how many achievements are unlocked BUT not in our 'achievements' array yet
+    let unclaimedCount = 0;
+    ALL_ACHIEVEMENTS.forEach(ach => {
+        if (ach.isUnlocked(playerData) && !playerData.achievements.includes(ach.id)) {
+            unclaimedCount++;
+        }
+    });
+
+    const statsBtn = document.getElementById('stats-btn');
+    if (statsBtn) {
+        if (unclaimedCount > 0) {
+            // Add red bubble and glow
+            statsBtn.innerHTML = `My Progress <span class="bg-red-600 text-white text-sm rounded-full px-2 py-0.5 ml-2 shadow-sm animate-bounce">${unclaimedCount}</span>`;
+            statsBtn.classList.add('border-red-500');
+            statsBtn.classList.remove('border-yellow-400'); // Swap border color
+        } else {
+            // Normal state
+            statsBtn.innerHTML = 'My Progress';
+            statsBtn.classList.remove('border-red-500');
+            statsBtn.classList.add('border-yellow-400');
+        }
+    }
+}
 
         function startUnlockingChest(index) {
             if (playerData.chests[index] && !playerData.chests[index].unlockStartTime) {
@@ -3582,17 +3688,26 @@ rewardEl.innerHTML = `<div class="text-4xl">💰</div><div class="bangers-font t
         }
         chestCloseBtn.onclick = () => chestOpeningModal.style.display = 'none';
 
-        function showConfirmationModal(message, onConfirm) {
-            confirmationText.textContent = message;
-            confirmationModal.style.display = 'flex';
-            confirmYesBtn.onclick = () => {
-                onConfirm();
-                confirmationModal.style.display = 'none';
-            };
-            confirmNoBtn.onclick = () => {
-                confirmationModal.style.display = 'none';
-            };
-        }
+function showConfirmationModal(message, onConfirm) {
+    confirmationText.textContent = message;
+    
+    // --- FIX: Reset buttons (Tutorial might have changed them) ---
+    const yesBtn = document.getElementById('confirm-yes-btn');
+    const noBtn = document.getElementById('confirm-no-btn');
+    
+    yesBtn.textContent = "Yes"; 
+    noBtn.style.display = "inline-block"; 
+    // -----------------------------------------------------------
+
+    confirmationModal.style.display = 'flex';
+    yesBtn.onclick = () => {
+        onConfirm();
+        confirmationModal.style.display = 'none';
+    };
+    noBtn.onclick = () => {
+        confirmationModal.style.display = 'none';
+    };
+}
        
         function showChallengeQuestion(chestIndex) {
             const questionData = CHALLENGE_QUESTIONS_DATABASE[Math.floor(Math.random() * CHALLENGE_QUESTIONS_DATABASE.length)];

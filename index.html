@@ -737,15 +737,151 @@ const SPAWNED_CARDS = [
             { id: 22, name: 'Dangling Modifier Trap', category: 'Spell', type: 'Modifier', cost: 3, emoji: '🪤', unlockCost: 900 },
             { id: 30, name: 'Onomatopoeia Bomb', category: 'Spell', type: 'Onomatopoeia', cost: 2, emoji: '💣', unlockCost: 250 },
             { id: 31, name: 'Metaphor Lighthouse', category: 'Building', type: 'Metaphor', cost: 4, emoji: '🗼', health: 600, unlockCost: 900 },
-// --- CHAMPION CARDS (UPDATED) ---
-    { id: 25, name: 'Semicolon Sentinel', category: 'Champion', type: 'Semicolon', cost: 6, emoji: '🤖', health: 1000, damage: 120, speed: 0.6, range: 30, attackSpeed: 110, unlockCost: 1500, 
+{ id: 25, name: 'Semicolon Sentinel', category: 'Champion', type: 'Semicolon', cost: 6, emoji: '🤖', health: 1000, damage: 120, speed: 0.6, range: 30, attackSpeed: 110, unlockCost: 1500, 
       ability: { type: 'Clause Connector', name: "Link Up", damage: 0, radius: 150, shieldHealth: 300, duration: 480 }, abilityCost: 1, abilityCooldown: 600 },
 
     { id: 26, name: 'Exclamation Executioner', category: 'Champion', type: 'Exclamation', cost: 6, emoji: '⚔️', health: 850, damage: 200, speed: 0.8, range: 30, attackSpeed: 140, unlockCost: 1500, 
       ability: { type: 'Emphatic Strike', name: "SHOUT!", damage: 400, radius: 100 }, abilityCost: 2, abilityCooldown: 400 },
 
     { id: 29, name: 'Ellipsis Assassin', category: 'Champion', type: 'Ellipsis', cost: 5, emoji: '🗡️', health: 600, damage: 150, speed: 1.4, range: 30, attackSpeed: 60, unlockCost: 1500, 
-      ability: { type: 'Trailing Off', name: "Fade...", damage: 0, radius: 0 }, abilityCost: 1, abilityCooldown: 300 }
+      ability: { type: 'Trailing Off', name: "Fade...", damage: 0, radius: 0 }, abilityCost: 1, abilityCooldown: 300 },
+      // --- NEW EXPANSION CARDS ---
+    { id: 60, name: 'Simile Scout', category: 'Troop', type: 'Figurative', cost: 3, emoji: '🐆', health: 250, damage: 90, speed: 2.2, range: 30, attackSpeed: 60, unlockCost: 400, info: 'Fast as a cheetah. Strikes like lightning.' },
+    
+    { id: 61, name: 'Metaphor Mountain', category: 'Troop', type: 'Figurative', cost: 8, emoji: '⛰️', health: 2000, damage: 150, speed: 0.4, range: 30, attackSpeed: 150, unlockCost: 2000, targetsBuildings: true, info: 'He IS a rock. Ignores troops to smash towers.' },
+    
+    { id: 62, name: 'Idiom Infantry', category: 'Troop', type: 'Figurative', cost: 3, emoji: '🎭', health: 80, damage: 40, speed: 1.5, range: 30, attackSpeed: 70, spawnCount: 4, unlockCost: 500, info: 'A dime a dozen. Great for distracting enemies.' },
+    
+    { id: 63, name: 'Passive Voice Wall', category: 'Building', type: 'Voice', cost: 4, emoji: '🧱', health: 1200, damage: 0, duration: 1800, range: 0, unlockCost: 800, info: 'Mistakes were made... but this wall was built. Pure defense.' },
+
+    { id: 64, name: 'Possessive Shield', category: 'Spell', type: 'Pronoun Shield', cost: 3, emoji: '🛡️', radius: 100, shieldHealth: 250, duration: 300, unlockCost: 600, info: 'Protects YOUR units with a grammar barrier.' },
+    // --- BALANCED EXPANSION PACK ---
+    
+    // 1. AERIAL SWARM (Gap: Air Support)
+    // Low health, high damage output, flies over river.
+    { id: 65, name: 'Vowel Vultures', category: 'Troop', type: 'Vowel', cost: 3, emoji: '🦅', health: 180, damage: 45, speed: 2.0, range: 30, attackSpeed: 60, spawnCount: 3, isFlying: true, unlockCost: 500, info: 'A flock of flying letters. Deadly in numbers.' },
+
+    // 2. SIEGE UNIT (Gap: Long Range / Sniper)
+    // Outranges standard towers (Range 200 vs Tower 150). Fragile.
+    { id: 66, name: 'Hyphen Howitzer', category: 'Troop', type: 'Punctuation', cost: 6, emoji: '🧨', health: 450, damage: 220, speed: 0.6, range: 220, attackSpeed: 200, unlockCost: 1200, info: 'Long-range siege unit. Snipes towers from a distance.' },
+
+    // 3. WIN CONDITION (Gap: Fast Building Targeter)
+    // Ignores troops to rush the King. Fast but melee.
+    { id: 67, name: 'Imperative Imp', category: 'Troop', type: 'Imperative', cost: 4, emoji: '😈', health: 900, damage: 180, speed: 2.6, range: 30, attackSpeed: 90, targetsBuildings: true, unlockCost: 800, info: 'Commands the battlefield. Rushes straight for buildings!' },
+
+    // 4. DEFENSIVE BUILDING (Gap: High DPS Turret)
+    // fast attack speed, shreds tanks.
+    { id: 68, name: 'Bracket Bunker', category: 'Building', type: 'Punctuation', cost: 5, emoji: '🛖', health: 1100, damage: 80, range: 160, attackSpeed: 40, duration: 2400, unlockCost: 1000, info: 'Rapid-fire defense. Shreds incoming tanks.' },
+
+    // 5. SPLASH SPELL (Gap: Area Denial)
+    // Moderate damage in a decent radius. Good vs Swarms.
+    { id: 69, name: 'Cliché Cloud', category: 'Spell', type: 'Phrase', cost: 3, emoji: '☁️', damage: 180, radius: 140, unlockCost: 600, info: 'Rains down common phrases. Clears out swarms.' },
+    // --- BALANCED EXPANSION PACK 2 ---
+
+    // 1. HEAVY AIR TANK (Gap: Flying Win Condition)
+    // You have Vultures (swarm) and Ghost (light), but no heavy air soak.
+    // This unit flies over defenses and targets buildings directly.
+    { id: 70, name: 'Capital Zeppelin', category: 'Troop', type: 'Mechanics', cost: 7, emoji: '🎈', health: 2200, damage: 60, speed: 0.5, range: 30, attackSpeed: 150, isFlying: true, targetsBuildings: true, unlockCost: 1500, info: 'A massive flying fortress. Ignores troops to bomb the tower.' },
+
+    // 2. CHEAP AIR DEFENSE (Gap: Reliable Anti-Air)
+    // A versatile, low-cost duo to counter enemy balloons or minions.
+    { id: 71, name: 'Auxiliary Archers', category: 'Troop', type: 'Helping Verb', cost: 3, emoji: '🏹', health: 150, damage: 45, speed: 1.2, range: 160, attackSpeed: 60, spawnCount: 2, isFlying: false, unlockCost: 400, info: 'Helping verbs that support from a distance. Hits air and ground.' },
+
+    // 3. FAST PRESSURE UNIT (Gap: Bridge Spam / Assassin)
+    // A "Glass Cannon" that moves very fast. Punishes opponents who waste juice.
+    { id: 72, name: 'Silent E Assassin', category: 'Troop', type: 'Phonics', cost: 3, emoji: '🥷', health: 200, damage: 180, speed: 2.8, range: 30, attackSpeed: 50, isFlying: false, unlockCost: 750, info: 'Silent but deadly. Sprints to the target and deals massive damage.' },
+
+    // 4. CHEAP DEFENSIVE BUILDING (Gap: Distraction / Cycle)
+    // You have heavy buildings, but need a cheap one to pull Hogs/Golems.
+    { id: 73, name: 'Predicate Pylon', category: 'Building', type: 'Predicate', cost: 3, emoji: '🗼', health: 700, damage: 60, range: 140, attackSpeed: 50, duration: 1200, unlockCost: 500, info: 'The foundation of a sentence. Cheap, reliable defense.' },
+
+    // 5. CHEAP SPELL (Gap: "Zap" / Stun)
+    // A quick, low-cost spell to reset enemy attacks or kill weak swarms.
+    { id: 74, name: 'Oxymoron Outburst', category: 'Spell', type: 'Figure of Speech', cost: 2, emoji: '⚡', damage: 100, radius: 80, unlockCost: 300, info: 'A shocking contradiction! Zaps enemies in a small area.' },
+
+    // --- EXPANSION PACK 3: ADVANCED MECHANICS ---
+
+    // 1. SPAWNER BUILDING (Gap: Lane Pressure)
+    // Constantly spawns weak units to annoy the enemy.
+    { id: 75, name: 'Root Word Workshop', category: 'Building', type: 'Root', cost: 5, emoji: '🏭', health: 900, damage: 0, range: 0, duration: 2400, unlockCost: 800, info: 'A factory of language. Spawns a Noun Suffix every 6 seconds.' },
+
+    // 2. CLONE SPELL (Gap: "Swarm" Multiplier)
+    // Copies all friendly units in a circle (1 HP clones).
+    { id: 76, name: 'Plagiarism Prism', category: 'Spell', type: 'Copy', cost: 3, emoji: '🖨️', radius: 120, unlockCost: 1000, info: 'Imitation is flattery! Clones all friendly troops in the area (Clones have 1 HP).' },
+
+    // 3. RIVER JUMPER (Gap: Fast Building Sniper)
+    // Jumps over the river to hit buildings (Hog Rider style).
+    { id: 77, name: 'Hyphen Hopper', category: 'Troop', type: 'Punctuation', cost: 4, emoji: '🐇', health: 800, damage: 160, speed: 2.4, range: 30, attackSpeed: 100, targetsBuildings: true, isFlying: false, unlockCost: 1200, info: 'Bridges the gap! Jumps over the river to smash buildings.' },
+
+    // 4. HEAVY AIR BOMBER (Gap: Heavy Air Win Condition)
+    // Slow, heavy damage to buildings (Balloon style).
+    { id: 78, name: 'Apostrophe Airship', category: 'Troop', type: 'Punctuation', cost: 5, emoji: '🎈', health: 1400, damage: 400, speed: 1.0, range: 30, attackSpeed: 180, targetsBuildings: true, isFlying: true, unlockCost: 1500, info: 'Drops heavy possessive bombs. Devastating if it reaches the tower.' },
+
+    // 5. CHAIN ATTACKER (Gap: Multi-Target Control)
+    // Attacks bounce between 3 enemies. Good vs spread swarms.
+    { id: 79, name: 'Consonant Connector', category: 'Troop', type: 'Phonics', cost: 4, emoji: '🔌', health: 450, damage: 90, speed: 1.5, range: 140, attackSpeed: 110, unlockCost: 900, info: 'Shoots electric arcs that bounce to up to 3 nearby enemies.' },
+
+    // 6. HEAVY SPELL (Gap: Finisher / High Damage)
+    // High cost, massive damage small area (Rocket style).
+    { id: 80, name: 'Editorial Strike', category: 'Spell', type: 'Editing', cost: 6, emoji: '🚀', damage: 700, radius: 80, crownTowerDamageMultiplier: 0.3, unlockCost: 1200, info: 'The Editor is angry. Deals massive damage to a small area.' },
+
+    // 7. SPLITTING TANK (Gap: "Trojan Horse")
+    // A tank that breaks open to reveal swarms (Battle Ram style).
+    { id: 81, name: 'Run-on Ram', category: 'Troop', type: 'Sentence', cost: 4, emoji: '🐏', health: 600, damage: 150, speed: 2.0, range: 30, attackSpeed: 100, targetsBuildings: true, unlockCost: 800, info: 'Charges at buildings! Breaks open to release 2 Clause Barbarians.' },
+
+    // 8. HEALER (Gap: Sustain)
+    // Heals nearby units instead of attacking.
+    { id: 82, name: 'Recovery Rubric', category: 'Troop', type: 'Grading', cost: 4, emoji: '🧚', health: 500, damage: -30, speed: 1.5, range: 100, attackSpeed: 80, isFlying: true, unlockCost: 1100, info: 'Heals friendly units nearby. Does not attack enemies!' },
+
+    // 9. HIGH DPS GLASS CANNONS (Gap: Elite Tank Killers)
+    // Very fast, very high damage, moderate health (Elite Barbs style).
+    { id: 83, name: 'Tautology Twins', category: 'Troop', type: 'Rhetoric', cost: 6, emoji: '👯', health: 550, damage: 160, speed: 2.5, range: 30, attackSpeed: 80, spawnCount: 2, unlockCost: 1400, info: 'They say the same thing twice. Fast, fierce, and redundant.' },
+
+    // 10. REFLECTION TANK (Gap: Counter-Attacker)
+    // Returns a % of damage taken back to the attacker.
+    { id: 84, name: 'Irony Maiden', category: 'Troop', type: 'Literary Device', cost: 4, emoji: '🛡️', health: 900, damage: 70, speed: 1.0, range: 30, attackSpeed: 110, unlockCost: 1000, info: 'Whatever you do to her happens to you. Reflects 30% of melee damage.' },
+
+    // --- EXPANSION PACK 3: ADVANCED MECHANICS ---
+
+    // 1. SPAWNER BUILDING (Gap: Lane Pressure)
+    // Constantly spawns weak units to annoy the enemy.
+    { id: 75, name: 'Root Word Workshop', category: 'Building', type: 'Root', cost: 5, emoji: '🏭', health: 900, damage: 0, range: 0, duration: 2400, unlockCost: 800, spawnUnitId: 55, spawnInterval: 300, info: 'Factory. Spawns a Noun Suffix every 5s.' },
+
+    // 2. CLONE SPELL (Gap: "Swarm" Multiplier)
+    // Copies all friendly units in a circle (1 HP clones).
+    { id: 76, name: 'Plagiarism Prism', category: 'Spell', type: 'Copy', cost: 3, emoji: '🖨️', radius: 120, unlockCost: 1000, info: 'Clones friendly troops (1 HP).' },
+
+    // 3. RIVER JUMPER (Gap: Fast Building Sniper)
+    // Jumps over the river to hit buildings (Hog Rider style).
+    { id: 77, name: 'Hyphen Hopper', category: 'Troop', type: 'Punctuation', cost: 4, emoji: '🐇', health: 800, damage: 160, speed: 2.4, range: 30, attackSpeed: 100, targetsBuildings: true, isFlying: false, unlockCost: 1200, info: 'Bridges the gap! Jumps over the river to smash buildings.' },
+
+    // 4. HEAVY AIR BOMBER (Gap: Heavy Air Win Condition)
+    // Slow, heavy damage to buildings (Balloon style).
+    { id: 78, name: 'Apostrophe Airship', category: 'Troop', type: 'Punctuation', cost: 5, emoji: '🎈', health: 1400, damage: 400, speed: 1.0, range: 30, attackSpeed: 180, targetsBuildings: true, isFlying: true, unlockCost: 1500, info: 'Drops heavy possessive bombs. Devastating if it reaches the tower.' },
+
+    // 5. CHAIN ATTACKER (Gap: Multi-Target Control)
+    // Attacks bounce between 3 enemies. Good vs spread swarms.
+    { id: 79, name: 'Consonant Connector', category: 'Troop', type: 'Phonics', cost: 4, emoji: '🔌', health: 450, damage: 90, speed: 1.5, range: 140, attackSpeed: 110, unlockCost: 900, info: 'Shoots electric arcs that bounce to up to 3 nearby enemies.' },
+
+    // 6. HEAVY SPELL (Gap: Finisher / High Damage)
+    // High cost, massive damage small area (Rocket style).
+    { id: 80, name: 'Editorial Strike', category: 'Spell', type: 'Editing', cost: 6, emoji: '🚀', damage: 700, radius: 80, crownTowerDamageMultiplier: 0.3, unlockCost: 1200, info: 'The Editor is angry. Deals massive damage to a small area.' },
+
+    // 7. SPLITTING TANK (Gap: "Trojan Horse")
+    // A tank that breaks open to reveal swarms (Battle Ram style).
+    { id: 81, name: 'Run-on Ram', category: 'Troop', type: 'Sentence', cost: 4, emoji: '🐏', health: 600, damage: 150, speed: 2.0, range: 30, attackSpeed: 100, targetsBuildings: true, unlockCost: 800, deathSpawnId: 101, deathSpawnCount: 2, info: 'Charges! Releases Clauses on death.' },
+
+    // 8. HEALER (Gap: Sustain)
+    // Heals nearby units instead of attacking.
+    { id: 82, name: 'Recovery Rubric', category: 'Troop', type: 'Grading', cost: 4, emoji: '🧚', health: 500, damage: -30, speed: 1.5, range: 100, attackSpeed: 80, isFlying: true, unlockCost: 1100, info: 'Heals friendly units.' },
+
+    // 9. HIGH DPS GLASS CANNONS (Gap: Elite Tank Killers)
+    // Very fast, very high damage, moderate health (Elite Barbs style).
+    { id: 83, name: 'Tautology Twins', category: 'Troop', type: 'Rhetoric', cost: 6, emoji: '👯', health: 550, damage: 160, speed: 2.5, range: 30, attackSpeed: 80, spawnCount: 2, unlockCost: 1400, info: 'They say the same thing twice. Fast, fierce, and redundant.' },
+
+    // 10. REFLECTION TANK (Gap: Counter-Attacker)
+    // Returns a % of damage taken back to the attacker.
+    { id: 84, name: 'Irony Maiden', category: 'Troop', type: 'Literary Device', cost: 4, emoji: '🛡️', health: 900, damage: 70, speed: 1.0, range: 30, attackSpeed: 110, unlockCost: 1000, info: 'Reflects 30% of melee damage.' }
         ];
 
         const QUESTIONS_DATABASE = [
@@ -1287,11 +1423,11 @@ draw() {
             ctx.restore();
         }
 
-        // --- 4. HEALTH BAR ---
-        const barW = this.size * 2;
+// --- 4. HEALTH BAR ---
+        const barW = this.size * 2; // <--- THIS WAS MISSING
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW, 6);
-        ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d'; 
+        ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
         const healthPercent = Math.max(0, Math.min(1, this.health / this.maxHealth));
         ctx.fillRect(this.x - barW/2, this.y + this.size + 5, barW * healthPercent, 6);
     }
@@ -1310,18 +1446,32 @@ class Unit {
         this.attackSpeed = card.attackSpeed;
         this.attackCooldown = 0; 
         
-        // --- NEW: ABILITY & EFFECT TIMERS ---
-        this.abilityCooldownTimer = 0; // Tracks cooldown for Champions
+        // Abilities
+        this.abilityCooldownTimer = 0; 
+        this.spawnTimer = 0; // For Spawner Buildings
         
         this.size = 20; this.target = null; 
-        this.effects = {}; // Stores shields, freezes, etc.
+        this.effects = {}; 
         this.targetsOnlyBuildings = card.targetsBuildings || false;
+        
+        this.lifeTimer = card.duration || 0; 
+        this.totalDuration = card.duration || 0;
+        this.isClone = false; // Prevent clones from cloning
     }
 
-update() {
+    update() {
         if (this.deployTimer > 0) { this.deployTimer--; return; }
 
-        // 1. Building Decay
+        // 1. Spawner Logic (NEW!)
+        if (this.card.spawnUnitId) {
+            this.spawnTimer++;
+            if (this.spawnTimer >= (this.card.spawnInterval || 300)) {
+                this.spawnTimer = 0;
+                this.spawnUnit(this.card.spawnUnitId);
+            }
+        }
+
+        // 2. Building Decay
         if (this.card.category === 'Building' && this.totalDuration > 0) {
             this.lifeTimer--; 
             const decay = this.maxHealth / this.totalDuration;
@@ -1329,11 +1479,11 @@ update() {
             if (this.lifeTimer <= 0 || this.health <= 0) { this.health = 0; return; }
         }
 
-        // 2. Status Effects Expiry
+        // 3. Status Effects
         if (this.effects.frozen) {
             this.effects.frozen.duration--;
             if (this.effects.frozen.duration <= 0) delete this.effects.frozen;
-            else return; // STOP if frozen
+            else return; 
         }
         if (this.effects.haste) {
             this.effects.haste.duration--;
@@ -1347,7 +1497,7 @@ update() {
             if (this.effects.shield.duration <= 0 || this.effects.shield.health <= 0) delete this.effects.shield;
         }
 
-        // 3. Combat Logic
+        // 4. Combat Logic
         if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.abilityCooldownTimer > 0) this.abilityCooldownTimer--;
 
@@ -1364,12 +1514,23 @@ update() {
         } else { this.moveForward(); }
     }
 
+    spawnUnit(id) {
+        const spawnCard = [...ALL_CARDS, ...SPAWNED_CARDS].find(c => c.id === id);
+        if (spawnCard) {
+            const unit = new Unit(spawnCard, this.x, this.y + 20, this.owner, this.level);
+            if (this.owner === 'player') gameState.player.units.push(unit);
+            else gameState.opponent.units.push(unit);
+            gameState.particles.push(new Particle(this.x, this.y));
+        }
+    }
+
     updateMovement() {
         const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
         let targetX = this.target.x;
         let targetY = this.target.y;
 
-        if (onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
+        // Bridge Logic (Unless Flying/Jumper)
+        if (!this.card.isFlying && !this.card.type.includes('Punctuation') && onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
             const leftBridge = ARENA_WIDTH * 0.25;
             const rightBridge = ARENA_WIDTH * 0.75;
             targetX = Math.abs(this.x - leftBridge) < Math.abs(this.x - rightBridge) ? leftBridge : rightBridge;
@@ -1382,9 +1543,19 @@ update() {
     }
 
     findTarget() {
+        // HEALER LOGIC: Target Friends!
+        const isHealer = this.damage < 0;
+        const friends = this.owner === 'player' ? gameState.player.units : gameState.opponent.units;
         const enemyTowers = this.owner === 'player' ? gameState.opponent.towers : gameState.player.towers;
         const enemyUnits = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-        const potential = this.targetsOnlyBuildings ? [...enemyTowers] : [...enemyUnits, ...enemyTowers];
+        
+        let potential;
+        if (isHealer) {
+             // Healers look for damaged friends
+             potential = friends.filter(u => u !== this && u.health < u.maxHealth);
+        } else {
+             potential = this.targetsOnlyBuildings ? [...enemyTowers] : [...enemyUnits, ...enemyTowers];
+        }
         
         let closest = null; let minD = Infinity;
         potential.forEach(t => {
@@ -1398,36 +1569,48 @@ update() {
 
     takeDamage(amount) { 
         let actualDamage = amount;
-
-        // --- NEW: Shield Absorb Logic ---
+        // Shield Logic
         if (this.effects.shield) {
             if (this.effects.shield.health >= actualDamage) {
-                // Shield absorbs all damage
                 this.effects.shield.health -= actualDamage;
-                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, "Absorbed", "blue")); // Optional visual
-                return; // No health damage taken
+                gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, "Absorbed", "blue")); 
+                return; 
             } else {
-                // Shield breaks, remaining damage hits unit
                 actualDamage -= this.effects.shield.health;
                 delete this.effects.shield;
-                gameState.effects.push(new Effect(this.x, this.y, { effectType: 'explosion', radius: 20 })); // Visual break effect
             }
         }
-
         this.health = Math.max(0, this.health - actualDamage); 
         gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, Math.round(actualDamage))); 
+
+        // DEATH SPAWN LOGIC (NEW!)
+        if (this.health <= 0 && this.card.deathSpawnId && !this.hasDeathSpawned) {
+            this.hasDeathSpawned = true;
+            for(let i=0; i < (this.card.deathSpawnCount || 1); i++) {
+                this.spawnUnit(this.card.deathSpawnId);
+            }
+        }
     }
 
     attack(target) { 
-        if (target && target.takeDamage) {
-            target.takeDamage(this.damage); 
+        if (target) {
+            if (this.damage < 0) {
+                // HEALING LOGIC
+                if (target.health < target.maxHealth) {
+                    target.health = Math.min(target.maxHealth, target.health - this.damage); // Subtracting neg = adding
+                    gameState.damageIndicators.push(new DamageIndicator(target.x, target.y, "+" + Math.abs(this.damage), "#4ade80"));
+                }
+            } else {
+                // DAMAGE LOGIC
+                if (target.takeDamage) target.takeDamage(this.damage); 
+            }
         }
     }
 
     draw() {
         ctx.save();
         
-        // Deploy Timer Visual
+        // Deploy Timer
         if (this.deployTimer > 0) {
             const progress = this.deployTimer / 60;
             ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI * 2 * progress);
@@ -1448,12 +1631,12 @@ update() {
             ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
         }
 
-        // Draw Emoji
+        // Emoji
         ctx.font = `${this.size * 1.6}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(this.card.emoji, this.x, this.y);
 
-        // --- NEW: Shield Visual ---
+        // Shield
         if (this.effects.shield) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
@@ -1463,15 +1646,14 @@ update() {
             ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
             ctx.fill();
         }
-// --- 5. NEW: Champion Ability Button ---
+
+        // Champion Button
         if (this.card.category === 'Champion' && this.owner === 'player') {
             const btnSize = 12;
             const btnX = this.x + 15;
             const btnY = this.y + 15;
             
-            // Draw cooldown pie chart or ready button
             if (this.abilityCooldownTimer > 0) {
-                // Cooldown (Gray Pie Chart)
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fbbf24';
@@ -1480,7 +1662,6 @@ update() {
                 ctx.arc(btnX, btnY, btnSize, -Math.PI/2, -Math.PI/2 + angle);
                 ctx.fill();
             } else if (gameState.player.juice >= (this.card.abilityCost || 0)) {
-                // Ready! (Pulsing Purple Button)
                 const pulse = Math.sin(Date.now() / 100) * 2;
                 ctx.shadowBlur = 10; ctx.shadowColor = "#a855f7";
                 ctx.fillStyle = '#a855f7';
@@ -1489,13 +1670,11 @@ update() {
                 ctx.font = "bold 10px sans-serif";
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText("⚡", btnX, btnY);
-                // Draw cost bubble
                 ctx.fillStyle = '#db2777'; 
                 ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = 'white';
                 ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
             } else {
-                // Not enough Juice (Grayed out)
                 ctx.fillStyle = '#4b5563';
                 ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
             }
@@ -1503,7 +1682,7 @@ update() {
 
         ctx.restore();
         
-        // Health Bar
+        // Health Bar (Corrected: No barW)
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
         ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
@@ -2449,66 +2628,111 @@ function playCard(card, x, y, owner, modifier) {
         if (card.category === 'Spell') playerData.stats.spellsCast++;
     }
     
-    const scale = Math.pow(1.1, card.level - 1);
-    
-    if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
-        // FIX: Synergy now requires cards to be played within 10 seconds
-        const lastCard = playerState.lastPlayedCard;
-        const lastTime = playerState.lastPlayedTime || 0;
-        let gotSynergy = false;
+    // --- CHECK FOR COMBOS / SYNERGIES ---
+    let synergyEffect = null;
+    if (owner === 'player' && playerState.lastPlayedCard && (now - playerState.lastPlayedTime < 8000)) {
+        const last = playerState.lastPlayedCard;
+        const current = card;
 
-        if (lastCard && (now - lastTime < 10000)) { // 10 second window
-            if(lastCard.type === 'Adjective' && card.type.includes('Noun')) {
-                gotSynergy = true;
-            }
+        if (last.type === 'Adjective' && current.type.includes('Noun')) synergyEffect = "Shield";
+        else if (last.type === 'Adverb' && current.type === 'Verb') synergyEffect = "Haste";
+        else if (last.type === 'Pronoun' && current.type === 'Verb') synergyEffect = "Damage";
+        else if (last.type === 'Preposition' && current.type.includes('Noun')) synergyEffect = "Health";
+        else if (last.type === 'Conjunction' && current.type === 'Clause') synergyEffect = "Refund";
+        else if (last.type === 'Interjection' && current.category !== 'Spell') synergyEffect = "Stun";
+
+        if (synergyEffect) {
+            gameState.damageIndicators.push(new DamageIndicator(x, y, "Synergy!", "#fbbf24"));
+            gameState.effects.push(new Effect(x, y, { effectType: 'synergy', radius: 40 }));
         }
+    }
 
+    // --- DEPLOY TROOPS/BUILDINGS ---
+    if (card.category === 'Troop' || card.category === 'Champion' || card.category === 'Building') {
         const spawnCount = card.spawnCount || 1;
         for (let i = 0; i < spawnCount; i++) {
             const offsetX = (Math.random() - 0.5) * 40;
             const offsetY = (Math.random() - 0.5) * 40;
             const newUnit = new Unit(card, x + offsetX, y + offsetY, owner, card.level);
-            if (gotSynergy) {
-                newUnit.effects.shield = { health: 150 };
-                gameState.effects.push(new Effect(x, y, {effectType: 'synergy'}));
+            
+            // Apply Synergy Bonuses
+            if (synergyEffect === "Shield") newUnit.effects.shield = { health: 150, duration: 999 };
+            else if (synergyEffect === "Haste") newUnit.applyStatus('haste', 300);
+            else if (synergyEffect === "Damage") newUnit.damage = Math.round(newUnit.damage * 1.5);
+            else if (synergyEffect === "Health") { newUnit.maxHealth = Math.round(newUnit.maxHealth * 1.3); newUnit.health = newUnit.maxHealth; }
+            else if (synergyEffect === "Refund" && i === 0) gameState.player.juice = Math.min(JUICE_MAX, gameState.player.juice + 1);
+            else if (synergyEffect === "Stun") {
+                const enemies = [...gameState.opponent.units, ...gameState.opponent.towers];
+                enemies.forEach(e => { if (distance(x, y, e.x, e.y) < 100) e.applyStatus('frozen', 120); });
             }
+
             playerState.units.push(newUnit);
         }
-} else if (card.category === 'Spell') {
+    } 
+    // --- CAST SPELLS ---
+    else if (card.category === 'Spell') {
         const targets = [...gameState.player.units, ...gameState.opponent.units];
         
-        // 1. FREEZE SPELL
+        // 1. FREEZE
         if (card.type.includes('Interjection') || card.type.includes('Freeze')) {
             gameState.effects.push(new Effect(x, y, { effectType: 'freeze', radius: 100, duration: 60 }));
             targets.forEach(u => {
-                if (distance(x, y, u.x, u.y) < 100 && u.owner !== owner) {
-                    u.applyStatus('frozen', 180); 
-                }
+                if (distance(x, y, u.x, u.y) < 100 && u.owner !== owner) u.applyStatus('frozen', 180); 
             });
         }
-        // 2. HASTE SPELL
+        // 2. HASTE
         else if (card.type.includes('Adverb') || card.type.includes('Haste')) {
             gameState.effects.push(new Effect(x, y, { effectType: 'haste', radius: 100, duration: 60 }));
             targets.forEach(u => {
-                if (distance(x, y, u.x, u.y) < 100 && u.owner === owner) {
-                    u.applyStatus('haste', 300); 
+                if (distance(x, y, u.x, u.y) < 100 && u.owner === owner) u.applyStatus('haste', 300); 
+            });
+        }
+
+        // ... (after Haste Spell logic) ...
+
+        // 5. CLONE SPELL (NEW!)
+        else if (card.type === 'Copy') {
+            gameState.effects.push(new Effect(x, y, { effectType: 'synergy', radius: card.radius || 120, duration: 60 }));
+            // Only clone player units
+            const friends = gameState.player.units;
+            friends.forEach(u => {
+                if (distance(x, y, u.x, u.y) < (card.radius || 120) && !u.isClone && u.card.category !== 'Building') {
+                    // Create Clone
+                    const clone = new Unit(u.card, u.x + 15, u.y + 15, 'player', u.level);
+                    clone.health = 1;      // Clones die in 1 hit
+                    clone.maxHealth = 1;
+                    clone.isClone = true;  // Mark as clone
+                    clone.effects.shield = null; // No shields for clones
+                    gameState.player.units.push(clone);
+                    gameState.particles.push(new Particle(u.x, u.y));
                 }
             });
         }
-        // 3. DAMAGE SPELL
+        
+        // ... (Shield logic follows) ...
+        
+        // 3. SHIELD (NEW!)
+        else if (card.type.includes('Shield')) {
+             gameState.effects.push(new Effect(x, y, { effectType: 'synergy', radius: card.radius || 100, duration: 60 })); 
+             targets.forEach(u => {
+                if (distance(x, y, u.x, u.y) < (card.radius || 100) && u.owner === owner) {
+                    u.applyStatus('shield', card.duration || 300, card.shieldHealth || 200);
+                }
+            });
+        }
+        // 4. DAMAGE
         else {
             gameState.effects.push(new Effect(x, y, { effectType: 'explosion', radius: card.radius || 60, duration: 30 }));
             const allTargets = [...targets, ...gameState.player.towers, ...gameState.opponent.towers];
             allTargets.forEach(t => {
-                if (distance(x, y, t.x, t.y) < (card.radius || 60) && t.owner !== owner) {
-                    t.takeDamage(card.damage, true);
-                }
+                if (distance(x, y, t.x, t.y) < (card.radius || 60) && t.owner !== owner) t.takeDamage(card.damage, true);
             });
         }
     }
 
+    // --- RECORD HISTORY (Required for Synergies to work!) ---
     playerState.lastPlayedCard = card;
-    playerState.lastPlayedTime = now; // FIX: Track play time for synergy
+    playerState.lastPlayedTime = now; 
     playerState.lastPlayedPos = {x, y};
 }
 
@@ -2961,6 +3185,7 @@ function handleCanvasClick(e) {
         const { card, index } = gameState.selectedCard;
         const isRepeat = card.id === gameState.player.lastPlayedCard?.id;
 
+        // Restriction: Troops must stay below river
         if (card.category !== 'Spell' && pos.y < RIVER_Y) return;
 
         if (card.category === 'Spell' || isRepeat) {
@@ -3342,41 +3567,78 @@ if (sortSelect) {
 
 function showTutorial() {
     const tutorialSteps = [
-        { title: "Linguistic Combat", text: "New Mechanic: TAP a card in your hand to select it, then TAP the battlefield to deploy! No dragging required." },
-        { title: "Grammar Links", text: "When you tap to place a Spell, you must complete a Grammar Check. Accuracy is key to victory!" },
-        { title: "Strategic Depth", text: "Place troops on your side of the river. Use your King Tower as the last line of defense!" }
+        { 
+            title: "Welcome to the Gauntlet! ⚔️", 
+            text: "Your mission: Destroy the enemy <b>King Tower</b> (the big one)! <br><br>Use your <b>Grammar Juice</b> (Pink Bar) to deploy units. It recharges over time." 
+        },
+        { 
+            title: "👆 TAP TO PLAY (New!)", 
+            text: "No dragging required! <br>1. <b>TAP</b> a card in your hand to select it.<br>2. <b>TAP</b> the arena to deploy it.<br><br>Troops must be placed on your side of the river." 
+        },
+        { 
+            title: "✨ Spells & Grammar Links", 
+            text: "Spells (like Fireballs) can be placed <b>anywhere</b> on the map!<br><br>BUT... you must answer a <b>Grammar Question</b> correctly to cast them. Accuracy is power!" 
+        },
+        { 
+            title: "🦸 Champions & Abilities", 
+            text: "Champions (like the Semicolon Sentinel) are special.<br><br>Once deployed, a <b>⚡ Button</b> appears above them. Tap it to spend Juice and unleash a powerful ability!" 
+        },
+        { 
+            title: "🛡️ Syntax Synergy (Pro Tip)", 
+            text: "Combo Bonus: If you play an <b>Adjective</b> card and then quickly play a <b>Noun</b> card, the Noun gets a <span class='text-blue-400 font-bold'>Shield</span>!<br><br><i>Example: 'Heavy' (Adj) + 'King' (Noun)</i>" 
+        },
+        { 
+            title: "Good Luck, Linguist!", 
+            text: "Defend your towers, manage your Juice, and prove your mastery of the English language. <br><br><b>The battle begins now!</b>" 
+        }
     ];
-    
-    // ... rest of the renderStep logic remains the same
 
     let currentStep = 0;
 
     function renderStep() {
-        // Use your existing confirmation modal elements
-        confirmationText.innerHTML = `
-            <h3 class="bangers-font text-2xl text-yellow-400 mb-2">${tutorialSteps[currentStep].title}</h3>
-            <p class="text-sm">${tutorialSteps[currentStep].text}</p>
-        `;
-        confirmYesBtn.textContent = currentStep === tutorialSteps.length - 1 ? "RETURN HOME" : "NEXT";
-        confirmNoBtn.classList.add('hidden'); // Hide the "No" button for the tutorial
-        
-        confirmationModal.style.display = 'flex';
+        // Reuse the Confirmation Modal for the tutorial to save space
+        const modal = document.getElementById('confirmation-modal');
+        const textEl = document.getElementById('confirmation-text');
+        const yesBtn = document.getElementById('confirm-yes-btn');
+        const noBtn = document.getElementById('confirm-no-btn');
 
-        confirmYesBtn.onclick = () => {
+        // Configure the modal content
+        textEl.innerHTML = `
+            <div class="flex flex-col items-center">
+                <div class="text-4xl mb-2">🎓</div>
+                <h3 class="bangers-font text-3xl text-yellow-400 mb-4 tracking-wide">${tutorialSteps[currentStep].title}</h3>
+                <p class="text-gray-300 text-lg leading-relaxed">${tutorialSteps[currentStep].text}</p>
+                <div class="flex gap-2 mt-4">
+                    ${tutorialSteps.map((_, i) => `
+                        <div class="w-2 h-2 rounded-full ${i === currentStep ? 'bg-yellow-400' : 'bg-gray-600'}"></div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // Configure Buttons
+        yesBtn.textContent = currentStep === tutorialSteps.length - 1 ? "BATTLE!" : "NEXT ➡";
+        yesBtn.className = "btn-wood text-xl px-8 py-2";
+        noBtn.style.display = 'none'; // Hide "No" button
+        
+        modal.style.display = 'flex';
+
+        // Button Logic
+        yesBtn.onclick = () => {
             currentStep++;
             if (currentStep < tutorialSteps.length) {
-                renderStep();
+                renderStep(); // Show next slide
             } else {
-                confirmationModal.style.display = 'none';
-                confirmNoBtn.classList.remove('hidden'); // Bring the button back for later
+                modal.style.display = 'none';
+                noBtn.style.display = 'inline-block'; // Restore "No" button for normal game use
                 playerData.tutorialComplete = true;
                 savePlayerData();
             }
         };
     }
+
     renderStep();
 }
-
 
     </script>
 </body>

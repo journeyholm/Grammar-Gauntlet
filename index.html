@@ -765,9 +765,23 @@ const SPAWNED_CARDS = [
     // Outranges standard towers (Range 200 vs Tower 150). Fragile.
     { id: 66, name: 'Hyphen Howitzer', category: 'Troop', type: 'Punctuation', cost: 6, emoji: '🧨', health: 450, damage: 220, speed: 0.6, range: 220, attackSpeed: 200, unlockCost: 1200, info: 'Long-range siege unit. Snipes towers from a distance.' },
 
-    // 3. WIN CONDITION (Gap: Fast Building Targeter)
-    // Ignores troops to rush the King. Fast but melee.
-    { id: 67, name: 'Imperative Imp', category: 'Troop', type: 'Imperative', cost: 4, emoji: '😈', health: 900, damage: 180, speed: 2.6, range: 30, attackSpeed: 90, targetsBuildings: true, unlockCost: 800, info: 'Commands the battlefield. Rushes straight for buildings!' },
+// NERFED IMPERATIVE IMP
+    { 
+        id: 67, 
+        name: 'Imperative Imp', 
+        category: 'Troop', 
+        type: 'Imperative', 
+        cost: 4, 
+        emoji: '', 
+        health: 600, // Reduced from 900 (Now killable by towers)
+        damage: 160, // Reduced slightly from 180
+        speed: 1.8,  // Reduced from 2.6 (Still fast, but trackable)
+        range: 30, 
+        attackSpeed: 90, 
+        targetsBuildings: true, 
+        unlockCost: 800, 
+        info: 'Commands the battlefield. Rushes straight for buildings!' 
+    },
 
     // 4. DEFENSIVE BUILDING (Gap: High DPS Turret)
     // fast attack speed, shreds tanks.

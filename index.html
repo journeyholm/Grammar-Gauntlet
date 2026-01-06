@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Grammar Gauntlet</title>
+    <title>Grammar Gauntlet: Legends</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -368,8 +368,8 @@ button, .card {
     <!-- Home Screen -->
     <div id="home-screen" class="screen flex flex-col items-center justify-evenly p-4 text-center">
         <div>
-            <h1 class="bangers-font text-6xl sm:text-7xl text-yellow-400">Grammar Gauntlet 📖</h1>
-        </div>
+<h1 class="bangers-font text-6xl sm:text-7xl text-yellow-400">Grammar Gauntlet <span class="text-pink-500 text-4xl">Legends</span></h1>        
+</div>
         <div class="space-y-3">
             <button id="play-btn" class="btn-wood bangers-font text-3xl sm:text-4xl w-64">Compose Battle</button>
             <button id="deck-btn" class="btn-wood bangers-font text-3xl sm:text-4xl w-64">My Lexicon</button>
@@ -772,7 +772,7 @@ const SPAWNED_CARDS = [
         category: 'Troop', 
         type: 'Imperative', 
         cost: 4, 
-        emoji: '', 
+        emoji: '😈', 
         health: 600, // Reduced from 900 (Now killable by towers)
         damage: 160, // Reduced slightly from 180
         speed: 1.8,  // Reduced from 2.6 (Still fast, but trackable)
@@ -823,9 +823,23 @@ const SPAWNED_CARDS = [
     // Copies all friendly units in a circle (1 HP clones).
     { id: 76, name: 'Plagiarism Prism', category: 'Spell', type: 'Copy', cost: 3, emoji: '🖨️', radius: 120, unlockCost: 1000, info: 'Imitation is flattery! Clones all friendly troops in the area (Clones have 1 HP).' },
 
-    // 3. RIVER JUMPER (Gap: Fast Building Sniper)
-    // Jumps over the river to hit buildings (Hog Rider style).
-    { id: 77, name: 'Hyphen Hopper', category: 'Troop', type: 'Punctuation', cost: 4, emoji: '🐇', health: 800, damage: 160, speed: 2.4, range: 30, attackSpeed: 100, targetsBuildings: true, isFlying: false, unlockCost: 1200, info: 'Bridges the gap! Jumps over the river to smash buildings.' },
+{ 
+        id: 77, 
+        name: 'Hyphen Hopper', 
+        category: 'Troop', 
+        type: 'Punctuation', 
+        cost: 4, 
+        emoji: '🦗', 
+        health: 500, // Reduced from 800 (Easier to kill)
+        damage: 160, 
+        speed: 1.5,  // Reduced from 2.4 (Fast, but not broken)
+        range: 30, 
+        attackSpeed: 100, 
+        targetsBuildings: true, 
+        isFlying: false, 
+        unlockCost: 1200, 
+        info: 'Bridges the gap! Jumps over the river to smash buildings.' 
+    },
 
     // 4. HEAVY AIR BOMBER (Gap: Heavy Air Win Condition)
     // Slow, heavy damage to buildings (Balloon style).

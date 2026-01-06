@@ -1360,20 +1360,26 @@ class Tower {
         this.target = closestEnemy;
     }
 
-takeDamage(amount, isSpell = false) {
-        const finalDamage = isSpell ? Math.round(amount * 0.35) : amount;
+takeDamage(amount, multiplierOrSource = null) {
+        if (!amount) return; // <--- ADD THIS SAFETY CHECK
+
+        let finalDamage = amount;
+
+        // If it's a number (from a spell), treat it as a multiplier
+        if (typeof multiplierOrSource === 'number') {
+            finalDamage = Math.round(amount * multiplierOrSource);
+        } 
+        // If it's a boolean 'true' (legacy code), default to 0.35
+        else if (multiplierOrSource === true) {
+            finalDamage = Math.round(amount * 0.35);
+        }
         
-        // FIX: Subtract the damage and ensure it doesn't stay stuck at 1
         this.health -= finalDamage;
         
-        // Visuals
         gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, finalDamage));
         gameState.shakeIntensity = 8;
         
-        // If it's a King Tower, it "wakes up" when hit
         this.isActivated = true; 
-
-        // Final check to ensure health is clean 0 for the filter
         if (this.health < 0) this.health = 0;
     }
 
@@ -1446,9 +1452,8 @@ class Unit {
         this.attackSpeed = card.attackSpeed;
         this.attackCooldown = 0; 
         
-        // Abilities
         this.abilityCooldownTimer = 0; 
-        this.spawnTimer = 0; // For Spawner Buildings
+        this.spawnTimer = 0; 
         
         this.size = 20; this.target = null; 
         this.effects = {}; 
@@ -1456,13 +1461,14 @@ class Unit {
         
         this.lifeTimer = card.duration || 0; 
         this.totalDuration = card.duration || 0;
-        this.isClone = false; // Prevent clones from cloning
+        this.isClone = false;
+        this.hasDeathSpawned = false; // Prevent double death spawns
     }
 
     update() {
         if (this.deployTimer > 0) { this.deployTimer--; return; }
 
-        // 1. Spawner Logic (NEW!)
+        // 1. Spawner Logic
         if (this.card.spawnUnitId) {
             this.spawnTimer++;
             if (this.spawnTimer >= (this.card.spawnInterval || 300)) {
@@ -1529,7 +1535,6 @@ class Unit {
         let targetX = this.target.x;
         let targetY = this.target.y;
 
-        // Bridge Logic (Unless Flying/Jumper)
         if (!this.card.isFlying && !this.card.type.includes('Punctuation') && onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
             const leftBridge = ARENA_WIDTH * 0.25;
             const rightBridge = ARENA_WIDTH * 0.75;
@@ -1542,21 +1547,42 @@ class Unit {
         this.y += Math.sin(angle) * this.speed;
     }
 
-    findTarget() {
-        // HEALER LOGIC: Target Friends!
-        const isHealer = this.damage < 0;
+findTarget() {
         const friends = this.owner === 'player' ? gameState.player.units : gameState.opponent.units;
         const enemyTowers = this.owner === 'player' ? gameState.opponent.towers : gameState.player.towers;
         const enemyUnits = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
         
-        let potential;
+        const isHealer = this.damage < 0;
+        
+        // 1. DETERMINE POTENTIAL TARGETS
+        let potential = [];
+        
         if (isHealer) {
-             // Healers look for damaged friends
+             // Healers target damaged friends
              potential = friends.filter(u => u !== this && u.health < u.maxHealth);
+        } else if (this.targetsOnlyBuildings) {
+             // FIX: Include Enemy Towers AND Enemy Units that are Buildings (Walls, Bunkers)
+             const enemyBuildings = enemyUnits.filter(u => u.card.category === 'Building');
+             potential = [...enemyTowers, ...enemyBuildings];
         } else {
-             potential = this.targetsOnlyBuildings ? [...enemyTowers] : [...enemyUnits, ...enemyTowers];
+             // Normal targeting (Units + Towers)
+             potential = [...enemyUnits, ...enemyTowers];
+        }
+
+        // 2. FILTER INVALID TARGETS (Flying Logic)
+        // If I am Melee (range < 50) and Ground, I cannot hit Flying units.
+        const iAmMelee = this.range < 50;
+        const iAmGround = !this.card.isFlying;
+        
+        if (iAmMelee && iAmGround && !isHealer) {
+            potential = potential.filter(t => {
+                // If t is a Tower, it's always hit-able. If it's a Unit, check flying.
+                if (t instanceof Tower) return true;
+                return !t.card.isFlying;
+            });
         }
         
+        // 3. FIND CLOSEST
         let closest = null; let minD = Infinity;
         potential.forEach(t => {
             const d = distance(this.x, this.y, t.x, t.y);
@@ -1567,9 +1593,12 @@ class Unit {
 
     moveForward() { this.y += (this.owner === 'player' ? -1 : 1) * this.speed * 0.5; }
 
-    takeDamage(amount) { 
+takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
+        if (!amount) return; 
+
         let actualDamage = amount;
-        // Shield Logic
+        
+        // 1. Shield Logic
         if (this.effects.shield) {
             if (this.effects.shield.health >= actualDamage) {
                 this.effects.shield.health -= actualDamage;
@@ -1580,10 +1609,31 @@ class Unit {
                 delete this.effects.shield;
             }
         }
+
+        // 2. REFLECTION LOGIC (Card 84: Irony Maiden)
+        // Only reflect if: 
+        // a) I am the Irony Maiden
+        // b) The attacker is a Unit
+        // c) This incoming damage isn't ALREADY a reflection (Prevents Infinite Loop)
+        if (this.card.id === 84 && source && source instanceof Unit && !isReflection) {
+             const reflected = Math.round(actualDamage * 0.3);
+             
+             // Pass 'true' as 3rd arg to stop the other unit from reflecting it back!
+             if (source.takeDamage) source.takeDamage(reflected, this, true); 
+             
+             gameState.damageIndicators.push(new DamageIndicator(source.x, source.y, reflected, "#ff0000"));
+             
+             // Visual Laser
+             ctx.save();
+             ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
+             ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(source.x, source.y); ctx.stroke();
+             ctx.restore();
+        }
+
         this.health = Math.max(0, this.health - actualDamage); 
         gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, Math.round(actualDamage))); 
 
-        // DEATH SPAWN LOGIC (NEW!)
+        // 3. DEATH SPAWN LOGIC
         if (this.health <= 0 && this.card.deathSpawnId && !this.hasDeathSpawned) {
             this.hasDeathSpawned = true;
             for(let i=0; i < (this.card.deathSpawnCount || 1); i++) {
@@ -1593,17 +1643,40 @@ class Unit {
     }
 
     attack(target) { 
-        if (target) {
-            if (this.damage < 0) {
-                // HEALING LOGIC
-                if (target.health < target.maxHealth) {
-                    target.health = Math.min(target.maxHealth, target.health - this.damage); // Subtracting neg = adding
-                    gameState.damageIndicators.push(new DamageIndicator(target.x, target.y, "+" + Math.abs(this.damage), "#4ade80"));
-                }
-            } else {
-                // DAMAGE LOGIC
-                if (target.takeDamage) target.takeDamage(this.damage); 
+        if (!target) return;
+
+        if (this.damage < 0) {
+            // HEALING LOGIC
+            if (target.health < target.maxHealth) {
+                target.health = Math.min(target.maxHealth, target.health - this.damage);
+                gameState.damageIndicators.push(new DamageIndicator(target.x, target.y, "+" + Math.abs(this.damage), "#4ade80"));
             }
+        } else {
+            // CHAIN LOGIC (Card 79: Consonant Connector)
+            if (this.card.id === 79) {
+                // Hit primary
+                if (target.takeDamage) target.takeDamage(this.damage, this);
+                
+                // Find neighbors to zap
+                const enemies = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
+                // Find up to 2 enemies within 150px of the target
+                const chainTargets = enemies.filter(e => e !== target && distance(target.x, target.y, e.x, e.y) < 150).slice(0, 2);
+                
+                chainTargets.forEach(e => {
+                    e.takeDamage(this.damage, this);
+                    gameState.effects.push(new Effect(e.x, e.y, { effectType: 'explosion', radius: 15 }));
+                    // Draw visual bolt
+                    ctx.save();
+                    ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y); ctx.lineTo(e.x, e.y); ctx.stroke();
+                    ctx.restore();
+                });
+                return;
+            }
+
+            // NORMAL DAMAGE
+            // Pass 'this' as the source so Reflection works!
+            if (target.takeDamage) target.takeDamage(this.damage, this); 
         }
     }
 
@@ -1638,51 +1711,34 @@ class Unit {
 
         // Shield
         if (this.effects.shield) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; ctx.fill();
         }
 
         // Champion Button
         if (this.card.category === 'Champion' && this.owner === 'player') {
-            const btnSize = 12;
-            const btnX = this.x + 15;
-            const btnY = this.y + 15;
-            
+            const btnSize = 12; const btnX = this.x + 15; const btnY = this.y + 15;
             if (this.abilityCooldownTimer > 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#fbbf24';
-                ctx.beginPath(); ctx.moveTo(btnX, btnY);
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(btnX, btnY);
                 const angle = (1 - (this.abilityCooldownTimer / this.card.abilityCooldown)) * Math.PI * 2;
-                ctx.arc(btnX, btnY, btnSize, -Math.PI/2, -Math.PI/2 + angle);
-                ctx.fill();
+                ctx.arc(btnX, btnY, btnSize, -Math.PI/2, -Math.PI/2 + angle); ctx.fill();
             } else if (gameState.player.juice >= (this.card.abilityCost || 0)) {
                 const pulse = Math.sin(Date.now() / 100) * 2;
                 ctx.shadowBlur = 10; ctx.shadowColor = "#a855f7";
-                ctx.fillStyle = '#a855f7';
-                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize + pulse, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.font = "bold 10px sans-serif";
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText("⚡", btnX, btnY);
-                ctx.fillStyle = '#db2777'; 
-                ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
+                ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize + pulse, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white'; ctx.font = "bold 10px sans-serif";
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText("⚡", btnX, btnY);
+                ctx.fillStyle = '#db2777'; ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white'; ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
             } else {
-                ctx.fillStyle = '#4b5563';
-                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
             }
         }
-
         ctx.restore();
         
-        // Health Bar (Corrected: No barW)
+        // Health Bar
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
         ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
@@ -1691,9 +1747,10 @@ class Unit {
     }
 }
 
-        class Projectile {
+class Projectile {
             constructor(source, target) {
                 this.x = source.x; this.y = source.y; this.target = target;
+                this.sourceUnit = source; // <--- NEW: Remember the shooter!
                 this.speed = 5; this.damage = source.damage; this.size = 5; this.health = 1;
             }
             update() {
@@ -1701,7 +1758,9 @@ class Unit {
                 const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                 this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed;
                 if (distance(this.x, this.y, this.target.x, this.target.y) < 15) {
-                    this.target.takeDamage(this.damage); this.health = 0;
+                    // Pass the sourceUnit so the target knows who hit it
+                    if (this.target.takeDamage) this.target.takeDamage(this.damage, this.sourceUnit); 
+                    this.health = 0;
                 }
             }
             draw() {
@@ -1898,9 +1957,15 @@ function update() {
         if (gameState.player.neuralLockout === 0) renderPlayerHand();
     }
 
-    gameState.gameTimer -= 1/60;
+gameState.gameTimer -= 1/60;
 
     if (gameState.gameTimer <= 0) {
+        // CHECK FOR TIE -> TRIGGER SUDDEN DEATH
+        if (gameState.player.towers.length === gameState.opponent.towers.length) {
+            startProofreadMode(); 
+            return;
+        }
+        
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         return endGame(gameState.player.towers.length > gameState.opponent.towers.length ? "Grammatical Victory!" : "Deconstructed!");
     }
@@ -1989,10 +2054,13 @@ function actuallyStartGame(bonusJuice = false) {
 // Cap AI level to slightly lower: (Wins / 5) instead of (Wins / 3)
 const aiLevel = Math.min(13, Math.max(1, Math.floor(1 + (playerData.wins / 5))));
     // Spawn Towers
-    gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player'));
-    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player'));
-    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player'));
+    // Spawn Towers
+    // FIX: Calculate player level so towers have the correct HP/Damage!
+    const playerLevel = getLevelFromXP(playerData.xp); 
     
+    gameState.player.towers.push(new Tower(ARENA_WIDTH / 2, ARENA_HEIGHT - 60, true, 'player', playerLevel));
+    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.2, ARENA_HEIGHT - 150, false, 'player', playerLevel));
+    gameState.player.towers.push(new Tower(ARENA_WIDTH * 0.8, ARENA_HEIGHT - 150, false, 'player', playerLevel));
     gameState.opponent.gameDeck = shuffle([...ALL_CARDS].map(c => ({...c, level: aiLevel})));
     for (let i = 0; i < HAND_SIZE; i++) drawCard('opponent');
     
@@ -2720,12 +2788,23 @@ function playCard(card, x, y, owner, modifier) {
                 }
             });
         }
-        // 4. DAMAGE
+// 4. DAMAGE (This is your NEW block)
         else {
             gameState.effects.push(new Effect(x, y, { effectType: 'explosion', radius: card.radius || 60, duration: 30 }));
             const allTargets = [...targets, ...gameState.player.towers, ...gameState.opponent.towers];
+            
+            // Calculate specific tower damage multiplier (Default 0.35 if not set)
+            const towerMult = card.crownTowerDamageMultiplier !== undefined ? card.crownTowerDamageMultiplier : 0.35;
+
             allTargets.forEach(t => {
-                if (distance(x, y, t.x, t.y) < (card.radius || 60) && t.owner !== owner) t.takeDamage(card.damage, true);
+                if (distance(x, y, t.x, t.y) < (card.radius || 60) && t.owner !== owner) {
+                    // Check if it's a Tower vs Unit
+                    if (t instanceof Tower) {
+                        t.takeDamage(card.damage, towerMult);
+                    } else {
+                        t.takeDamage(card.damage, null); // Units take full damage
+                    }
+                }
             });
         }
     }
@@ -2899,7 +2978,6 @@ function handleAnswer(isCorrect, modifier = null, isRepeat = false) {
 function endGame(message) {
     if (gameState.gameOver) return;
     gameState.gameOver = true;
-
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
     playerUiPanel.style.display = 'none';
@@ -2911,7 +2989,6 @@ function endGame(message) {
 
     let crownsWon = 0;
     let isWin = false;
-
     // Check winning condition
     if (isKingDead || message === 'Grammatical Victory!' || message === "You Win by Proofreading!") {
         isWin = true;
@@ -2920,7 +2997,9 @@ function endGame(message) {
         crownsWon = 3 - gameState.opponent.towers.length;
     }
 
+    // --- FIX 1: Declare these variables here so they work everywhere ---
     let totalGold = 0;
+    let xpGained = 0; 
 
     if (isWin) {
         // --- NEW: TIER 2 PERK (Gold Multiplier) ---
@@ -2928,14 +3007,13 @@ function endGame(message) {
         const currentLvl = getLevelFromXP(playerData.xp);
         let multiplier = 1.0;
         if (currentLvl >= 6) multiplier = 1.2;
-
+        
         // Calculate Rewards
         totalGold = Math.floor((50 + (crownsWon * 25)) * multiplier);
-        const xpGained = 50 + (crownsWon * 10);
+        xpGained = 50 + (crownsWon * 10); // FIX 2: Removed 'const'
 
-        // Apply Rewards
-        playerData.gold += totalGold;
-        playerData.xp += xpGained;
+        // FIX 3: Removed the playerData lines here so we don't add rewards twice
+
         playerData.wins++;
         playerData.stats.towersDestroyed += crownsWon;
 
@@ -2945,7 +3023,6 @@ function endGame(message) {
         spawnConfetti();
 
         let rewardMessage = `You earned ${totalGold} GG | +${xpGained} XP`;
-
         // Chest Logic
         const chestType = getRandomChestType();
         if (playerData.chests.length < playerData.maxChestSlots) {
@@ -2961,20 +3038,50 @@ function endGame(message) {
         }
 
         goldWonText.textContent = rewardMessage;
-
     } else {
         // --- DEFEAT LOGIC ---
         // Small consolation prize
         totalGold = 20 + (crownsWon * 10);
-        const xpGained = 10; // Small XP gain for participating
+        xpGained = 10; // FIX 2: Removed 'const'
 
-        playerData.gold += totalGold;
-        playerData.xp += xpGained;
+        // FIX 3: Removed the playerData lines here so we don't add rewards twice
+
         playerData.stats.towersDestroyed += crownsWon;
 
         gameOverText.textContent = message === "Grammatical Victory!" ? "Deconstructed!" : message;
         goldWonText.textContent = `Defeat... but you earned ${totalGold} GG | +${xpGained} XP`;
         gameOverText.className = 'game-message text-red-500 bangers-font';
+    }
+    
+    // Apply Rewards
+    const oldLevel = getLevelFromXP(playerData.xp);
+    // Check level BEFORE adding XP
+    playerData.gold += totalGold;
+    playerData.xp += xpGained; // This line crashed before because xpGained was undefined
+    
+    const newLevel = getLevelFromXP(playerData.xp); // Check level AFTER adding XP
+    
+    // CHECK FOR LEVEL UP
+    if (newLevel > oldLevel) {
+        document.getElementById('level-up-number').textContent = newLevel;
+        // Check if we unlocked a new Tier Perk
+        const tier = getCurrentTier(newLevel);
+        const tierBox = document.getElementById('level-up-tier-box');
+        if (newLevel === tier.range[0]) {
+            tierBox.classList.remove('hidden');
+            document.getElementById('level-up-tier-name').textContent = tier.name;
+            document.getElementById('level-up-perk').textContent = "New Perk: " + tier.perk;
+        } else {
+            tierBox.classList.add('hidden');
+        }
+        
+        // Show the modal
+        const lvlModal = document.getElementById('level-up-modal');
+        lvlModal.style.display = 'flex';
+        // Simple click to close
+        document.getElementById('level-up-claim-btn').onclick = () => {
+            lvlModal.style.display = 'none';
+        };
     }
 
     savePlayerData();
@@ -2987,69 +3094,61 @@ function endGame(message) {
             }
         }
 
-        function startProofreadMode() {
+function startProofreadMode() {
+            // 1. Safety Check
             if (gameState.gameOver) return;
-            gameState.gameOver = true; // Pauses regular game logic
-            clearInterval(gameLoopId);
+            
+            // 2. Pause the Game Loop properly
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            
             playerData.errorsFound = 0;
            
+            // 3. Define the Challenge Text
             const paragraphData = {
                 text: "The king and his knights marches bravely towards the castle they're castle was the biggest in the land. Wow. The peasants watches them go, hoping for a easy victory.",
                 errors: [
-                    { word: "marches", correct: "march", exp: "Subject-verb agreement: 'king and knights' is plural, so the verb should be 'march'."},
-                    { word: "they're", correct: "their", exp: "'They're' means 'they are'. 'Their' is possessive, showing ownership."},
-                    { word: "Wow.", correct: "Wow!", exp: "Interjections showing strong emotion should be followed by an exclamation mark."},
-                    { word: "watches", correct: "watch", exp: "Subject-verb agreement: 'peasants' is plural, so the verb should be 'watch'."},
-                    { word: "a easy", correct: "an easy", exp: "Article error: 'easy' starts with a vowel sound, so it should be preceded by 'an'."}
+                    { word: "marches", correct: "march", exp: "Subject-verb agreement: 'king and knights' is plural, so use 'march'."},
+                    { word: "they're", correct: "their", exp: "'They're' means 'they are'. 'Their' shows ownership."},
+                    { word: "Wow.", correct: "Wow!", exp: "Strong emotion requires an exclamation mark."},
+                    { word: "watches", correct: "watch", exp: "Subject-verb agreement: 'peasants' is plural, so use 'watch'."},
+                    { word: "a easy", correct: "an easy", exp: "Use 'an' before vowel sounds."}
                 ]
             };
 
+            // 4. Render the Text with Clickable Errors
             let html = paragraphData.text;
             paragraphData.errors.forEach(err => {
-                html = html.replace(err.word, `<span class="error-word" data-correct="${err.correct}" data-exp="${err.exp}">${err.word}</span>`);
+                html = html.replace(err.word, `<span class="error-word" style="cursor: pointer; border-bottom: 2px dashed #fbbf24;" data-correct="${err.correct}" data-exp="${err.exp}">${err.word}</span>`);
             });
 
             proofreadParagraph.innerHTML = html;
-            errorsFoundCount.textContent = playerData.errorsFound || 0;
+            errorsFoundCount.textContent = "0";
            
-proofreadParagraph.querySelectorAll('.error-word').forEach(wordEl => {
+            // 5. Add Click Listeners to Words
+            proofreadParagraph.querySelectorAll('.error-word').forEach(wordEl => {
                 wordEl.onclick = () => {
                     const correct = wordEl.dataset.correct;
-                    // Prevent clicking explicitly corrected words again
+                    
+                    // Ignore if already fixed
                     if (wordEl.textContent === correct) return;
 
                     // Fix the word visually
                     wordEl.textContent = correct;
-                    wordEl.style.color = '#68d391';
+                    wordEl.style.color = '#68d391'; // Green
                     wordEl.style.textDecoration = 'none';
+                    wordEl.style.borderBottom = 'none';
                     wordEl.style.cursor = 'default';
-                    wordEl.onclick = null;
                    
-                    // Update error count
-                    if (!playerData.errorsFound) playerData.errorsFound = 0;
+                    // Update Count
                     playerData.errorsFound++;
                     errorsFoundCount.textContent = playerData.errorsFound;
 
-                    // --- THIS IS THE PART THAT WAS FIXING ---
-                    // Check if they found all 3 errors
-                    if(playerData.errorsFound >= 3) {
+// 6. WIN CONDITION (Find 3 Errors)
+                    if (playerData.errorsFound >= 3) {
                         proofreadModal.style.display = 'none';
-                        
-                        // 1. Heal the King
-                        const myKing = gameState.player.towers.find(t => t.isKing);
-                        if(myKing) myKing.health = myKing.maxHealth; 
-
-                        // 2. Unpause the game state
-                        gameState.gameOver = false;
-                        
-                        // 3. Restart the smooth game loop (The Fix)
-                        function resumeLoop() {
-                            if (!gameState.gameOver) {
-                                update();
-                                animationFrameId = requestAnimationFrame(resumeLoop);
-                            }
-                        }
-                        animationFrameId = requestAnimationFrame(resumeLoop);
+                        // Immediately end the game with a special victory message
+                        // This prevents the "Timer = 0" loop from triggering again
+                        endGame("You Win by Proofreading!"); 
                     }
                 };
             });
@@ -3145,8 +3244,49 @@ function renderStatsScreen() {
     statsContent.innerHTML = html;
     
     // Clear achievements section to keep the UI clean
-    achievementsContent.innerHTML = `<div class="text-gray-500 text-center italic mt-4">Achievements are now tracked in your Profile Badge!</div>`;
-}
+// --- RESTORED ACHIEVEMENT LIST ---
+    achievementsContent.innerHTML = '';
+    let achievementsHtml = '<div class="grid grid-cols-1 gap-3">';
+    
+    ALL_ACHIEVEMENTS.forEach(ach => {
+        // Check if unlocked based on current stats
+        const isUnlocked = ach.isUnlocked(playerData);
+        
+        // Visual Styling
+        const opacity = isUnlocked ? 'opacity-100' : 'opacity-50 grayscale';
+        const statusIcon = isUnlocked ? '✅' : '🔒';
+        const border = isUnlocked ? 'border-yellow-400' : 'border-gray-600';
+        const bg = isUnlocked ? 'bg-gray-800' : 'bg-gray-900';
+        const titleColor = isUnlocked ? 'text-yellow-400' : 'text-gray-400';
+        
+        // Auto-Claim Logic: If unlocked but not yet saved in our list, claim it now!
+        if (isUnlocked && !playerData.achievements.includes(ach.id)) {
+            playerData.achievements.push(ach.id);
+            playerData.gold += ach.reward;
+            savePlayerData();
+            // Optional: You could trigger a sound or alert here
+        }
+
+        achievementsHtml += `
+            <div class="flex items-center gap-4 p-3 rounded-xl border-2 ${border} ${bg} ${opacity} relative overflow-hidden group">
+                <div class="text-3xl z-10">${statusIcon}</div>
+                <div class="z-10 flex-grow">
+                    <div class="flex justify-between items-center">
+                        <h4 class="bangers-font text-lg ${titleColor} tracking-wide">${ach.name}</h4>
+                        ${isUnlocked ? '<span class="text-[10px] bg-green-900 text-green-300 px-2 py-0.5 rounded border border-green-500">COMPLETE</span>' : ''}
+                    </div>
+                    <p class="text-xs text-gray-300">${ach.desc}</p>
+                </div>
+                <div class="absolute right-0 top-0 bottom-0 w-20 bg-black/20 flex flex-col items-center justify-center border-l border-white/5">
+                    <div class="text-xs text-yellow-500 font-bold">${ach.reward}</div>
+                    <div class="text-[8px] text-gray-400 uppercase">Gold</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    achievementsHtml += '</div>';
+    achievementsContent.innerHTML = achievementsHtml;}
 
         // --- Event Listeners ---
 function returnToHome() {

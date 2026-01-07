@@ -693,7 +693,25 @@ const SPAWNED_CARDS = [
 { id: 55, name: 'Noun Suffix Swarm', category: 'Troop', type: 'Suffix', cost: 1, emoji: '🐜', health: 60, damage: 10, speed: 2.0, range: 30, attackSpeed: 60, spawnCount: 5, isFlying: false, unlockCost: 50, info: 'Cheap swarm for defense.'},
 { id: 2, name: 'Abstract Noun Ghost', category: 'Troop', type: 'Abstract Noun', cost: 3, emoji: '👻', health: 220, damage: 30, speed: 1.2, range: 35, attackSpeed: 85, isFlying: true, unlockCost: 200, info: 'Ethereal: Can fly over the river.' },
             { id: 56, name: 'Determiner Dart Thrower', category: 'Troop', type: 'Determiner', cost: 2, emoji: '🎯', health: 100, damage: 30, speed: 1.8, range: 130, attackSpeed: 40, isFlying: false, unlockCost: 200, info: 'A fast-attacking ranged troop.'},
-{ id: 10, name: 'Common Noun Peasant', category: 'Troop', type: 'Common Noun', cost: 2, emoji: '👨‍🌾', health: 90, damage: 18, speed: 1.6, range: 100, attackSpeed: 60, spawnCount: 2, isFlying: false, unlockCost: 100, info: 'Standard infantry units.' },            
+{ 
+    id: 10, 
+    name: 'Common Noun Peasant', 
+    category: 'Troop', 
+    type: 'Common Noun', 
+    cost: 2, 
+    emoji: '🌾', 
+    health: 90, 
+    damage: 18, 
+    speed: 1.6, 
+    range: 30, 
+    canAttackAir: true, // <--- ALLOWS HITTING FLYING UNITS
+    attackSpeed: 60, 
+    spawnCount: 2, 
+    isFlying: false, 
+    unlockCost: 100, 
+    info: 'Standard infantry. Can hit flying enemies with pitchforks!' 
+},
+
 { id: 11, name: 'Gerund Golem', category: 'Troop', type: 'Gerund', cost: 6, emoji: '🗿', health: 950, damage: 15, speed: 0.7, range: 30, attackSpeed: 120, isFlying: false, unlockCost: 400, info: 'Building Targeter: Splits on death.', targetsBuildings: true },
             { id: 14, name: 'Participle Phantom', category: 'Troop', type: 'Participle', cost: 4, emoji: '🌑', health: 280, damage: 15, speed: 1.0, range: 40, attackSpeed: 60, isFlying: true, unlockCost: 400, info: 'An attacker that slows enemies.' },
             { id: 17, name: 'Absolute Phrase Juggernaut', category: 'Troop', type: 'Absolute Phrase', cost: 7, emoji: '🛡️', health: 800, damage: 60, speed: 0.9, range: 30, attackSpeed: 150, isFlying: false, unlockCost: 800, info: 'A massive troop dealing area damage.' },
@@ -702,7 +720,20 @@ const SPAWNED_CARDS = [
             { id: 28, name: 'Parenthetical Guards', category: 'Troop', type: 'Parenthetical', cost: 3, emoji: '⚔️', health: 120, damage: 20, speed: 1.5, range: 30, attackSpeed: 70, spawnCount: 2, unlockCost: 300, info: 'Tough troops with shields.' },
             { id: 50, name: 'Prepositional Phalanx', category: 'Troop', type: 'Preposition', cost: 4, emoji: '🛡️', health: 100, damage: 25, speed: 1.4, range: 30, attackSpeed: 70, spawnCount: 3, unlockCost: 500 },
             { id: 51, name: 'Correlative Conjunction Twins', category: 'Troop', type: 'Conjunction', cost: 4, emoji: '👯', health: 220, damage: 35, speed: 1.4, range: 30, attackSpeed: 80, spawnCount: 2, unlockCost: 700 },
-            { id: 32, name: 'Subjunctive Mood Monk', category: 'Troop', type: 'Subjunctive', cost: 4, emoji: '🧘', health: 450, damage: 20, speed: 1.0, range: 100, attackSpeed: 120, unlockCost: 1000 },
+{ 
+    id: 32, 
+    name: 'Subjunctive Mood Monk', 
+    category: 'Troop', 
+    type: 'Subjunctive', 
+    cost: 4, 
+    emoji: '🙏', 
+    health: 450, 
+    damage: 20, 
+    speed: 1.0, 
+    range: 30, // Fixed Range
+    attackSpeed: 120, 
+    unlockCost: 1000 
+},
             { id: 33, name: 'Homophone Wizard', category: 'Troop', type: 'Homophone', cost: 5, emoji: '🧙', health: 250, damage: 50, speed: 0.9, range: 120, attackSpeed: 110, unlockCost: 800 },
             { id: 36, name: 'Split Infinitive Splitter', category: 'Troop', type: 'Infinitive', cost: 4, emoji: '⚔️', health: 300, damage: 40, speed: 1.3, range: 30, attackSpeed: 80, unlockCost: 650 },
             { id: 37, name: 'Possessive Pronoun Parasite', category: 'Troop', type: 'Pronoun', cost: 3, emoji: '🕷️', health: 100, damage: 10, speed: 2.2, range: 30, attackSpeed: 50, unlockCost: 750 },
@@ -715,7 +746,20 @@ const SPAWNED_CARDS = [
             { id: 52, name: 'Syntax Tax', category: 'Spell', type: 'Syntax', cost: 2, emoji: '💰', unlockCost: 800 },
             { id: 53, name: 'Antonym Inverter', category: 'Spell', type: 'Antonym', cost: 4, emoji: '🔄', unlockCost: 1000 },
             { id: 54, name: 'Cumulative Adjective Crusher', category: 'Troop', type: 'Adjective', cost: 4, emoji: '🔨', health: 600, damage: 40, speed: 1.0, range: 30, attackSpeed: 100, unlockCost: 850 },
-            { id: 44, name: 'Misplaced Modifier', category: 'Troop', type: 'Modifier', cost: 3, emoji: '❓', health: 250, damage: 50, speed: 1.3, range: 120, attackSpeed: 90, unlockCost: 700 },
+{ 
+    id: 44, 
+    name: 'Misplaced Modifier', 
+    category: 'Troop', 
+    type: 'Modifier', 
+    cost: 3, 
+    emoji: '🕷️', 
+    health: 250, 
+    damage: 50, 
+    speed: 1.3, 
+    range: 30, // Fixed Range
+    attackSpeed: 90, 
+    unlockCost: 700 
+},
             { id: 48, name: 'Tense Shift Trap', category: 'Spell', type: 'Tense', cost: 3, emoji: '⏳', unlockCost: 600 },
             { id: 49, name: 'Semicolon Link', category: 'Building', type: 'Punctuation', cost: 3, emoji: '🔗', health: 400, damage: 0, duration: 1200, range: 0, unlockCost: 800 },
 { id: 3, name: 'Active Verb Fireball', category: 'Spell', type: 'Action Verb', cost: 4, emoji: '🔥', damage: 150, radius: 60, info: 'Intense Action: Deals area damage.' },            { id: 5, name: 'Adverb Haste', category: 'Spell', type: 'Adverb', cost: 2, emoji: '⚡', speedBoost: 2, duration: 300, radius: 70, unlockCost: 150 },
@@ -1550,16 +1594,15 @@ class Unit {
         this.attackCooldown = 0; 
         
         this.abilityCooldownTimer = 0; 
-        this.spawnTimer = 0; 
-        
+        this.spawnTimer = 0;
         this.size = 20; this.target = null; 
         this.effects = {}; 
         this.targetsOnlyBuildings = card.targetsBuildings || false;
         
-        this.lifeTimer = card.duration || 0; 
+        this.lifeTimer = card.duration || 0;
         this.totalDuration = card.duration || 0;
         this.isClone = false;
-        this.hasDeathSpawned = false; // Prevent double death spawns
+        this.hasDeathSpawned = false;
     }
 
     update() {
@@ -1576,7 +1619,7 @@ class Unit {
 
         // 2. Building Decay
         if (this.card.category === 'Building' && this.totalDuration > 0) {
-            this.lifeTimer--; 
+            this.lifeTimer--;
             const decay = this.maxHealth / this.totalDuration;
             this.health -= decay;
             if (this.lifeTimer <= 0 || this.health <= 0) { this.health = 0; return; }
@@ -1591,7 +1634,7 @@ class Unit {
         if (this.effects.haste) {
             this.effects.haste.duration--;
             if (this.effects.haste.duration <= 0) {
-                this.speed = this.card.speed; 
+                this.speed = this.card.speed;
                 delete this.effects.haste;
             }
         }
@@ -1605,12 +1648,11 @@ class Unit {
         if (this.abilityCooldownTimer > 0) this.abilityCooldownTimer--;
 
         if (!this.target || this.target.health <= 0) this.findTarget();
-
         if (this.target) {
             const dist = distance(this.x, this.y, this.target.x, this.target.y);
             if (dist <= this.range + 5) { 
                 if (this.attackCooldown <= 0) { 
-                    this.attack(this.target); 
+                    this.attack(this.target);
                     this.attackCooldown = this.attackSpeed; 
                 }
             } else { this.updateMovement(); }
@@ -1631,7 +1673,7 @@ class Unit {
         const onMySide = (this.owner === 'player' && this.y > RIVER_Y + 20) || (this.owner === 'opponent' && this.y < RIVER_Y - 20);
         let targetX = this.target.x;
         let targetY = this.target.y;
-
+        
         if (!this.card.isFlying && !this.card.type.includes('Punctuation') && onMySide && ((this.owner === 'player' && targetY < RIVER_Y) || (this.owner === 'opponent' && targetY > RIVER_Y))) {
             const leftBridge = ARENA_WIDTH * 0.25;
             const rightBridge = ARENA_WIDTH * 0.75;
@@ -1644,43 +1686,38 @@ class Unit {
         this.y += Math.sin(angle) * this.speed;
     }
 
-findTarget() {
+    findTarget() {
         const friends = this.owner === 'player' ? gameState.player.units : gameState.opponent.units;
         const enemyTowers = this.owner === 'player' ? gameState.opponent.towers : gameState.player.towers;
         const enemyUnits = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-        
         const isHealer = this.damage < 0;
         
         // 1. DETERMINE POTENTIAL TARGETS
         let potential = [];
-        
         if (isHealer) {
-             // Healers target damaged friends
              potential = friends.filter(u => u !== this && u.health < u.maxHealth);
         } else if (this.targetsOnlyBuildings) {
-             // FIX: Include Enemy Towers AND Enemy Units that are Buildings (Walls, Bunkers)
              const enemyBuildings = enemyUnits.filter(u => u.card.category === 'Building');
              potential = [...enemyTowers, ...enemyBuildings];
         } else {
-             // Normal targeting (Units + Towers)
              potential = [...enemyUnits, ...enemyTowers];
         }
 
-        // 2. FILTER INVALID TARGETS (Flying Logic)
-        // If I am Melee (range < 50) and Ground, I cannot hit Flying units.
+        // 2. FILTER INVALID TARGETS (Flying Logic Fix)
         const iAmMelee = this.range < 50;
         const iAmGround = !this.card.isFlying;
-        
-        if (iAmMelee && iAmGround && !isHealer) {
-            potential = potential.filter(t => {
-                // If t is a Tower, it's always hit-able. If it's a Unit, check flying.
+        const canHitAir = this.card.canAttackAir || false;
+
+        if (iAmGround && !canHitAir && !isHealer) {
+             potential = potential.filter(t => {
                 if (t instanceof Tower) return true;
                 return !t.card.isFlying;
-            });
+             });
         }
         
         // 3. FIND CLOSEST
-        let closest = null; let minD = Infinity;
+        let closest = null;
+        let minD = Infinity;
         potential.forEach(t => {
             const d = distance(this.x, this.y, t.x, t.y);
             if (d < minD) { minD = d; closest = t; }
@@ -1690,12 +1727,10 @@ findTarget() {
 
     moveForward() { this.y += (this.owner === 'player' ? -1 : 1) * this.speed * 0.5; }
 
-takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
-        if (!amount) return; 
-
+    takeDamage(amount, source, isReflection = false) { 
+        if (!amount) return;
         let actualDamage = amount;
         
-        // 1. Shield Logic
         if (this.effects.shield) {
             if (this.effects.shield.health >= actualDamage) {
                 this.effects.shield.health -= actualDamage;
@@ -1707,20 +1742,11 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
             }
         }
 
-        // 2. REFLECTION LOGIC (Card 84: Irony Maiden)
-        // Only reflect if: 
-        // a) I am the Irony Maiden
-        // b) The attacker is a Unit
-        // c) This incoming damage isn't ALREADY a reflection (Prevents Infinite Loop)
         if (this.card.id === 84 && source && source instanceof Unit && !isReflection) {
              const reflected = Math.round(actualDamage * 0.3);
-             
-             // Pass 'true' as 3rd arg to stop the other unit from reflecting it back!
-             if (source.takeDamage) source.takeDamage(reflected, this, true); 
-             
+             if (source.takeDamage) source.takeDamage(reflected, this, true);
              gameState.damageIndicators.push(new DamageIndicator(source.x, source.y, reflected, "#ff0000"));
              
-             // Visual Laser
              ctx.save();
              ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
              ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(source.x, source.y); ctx.stroke();
@@ -1728,9 +1754,8 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
         }
 
         this.health = Math.max(0, this.health - actualDamage); 
-        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, Math.round(actualDamage))); 
+        gameState.damageIndicators.push(new DamageIndicator(this.x, this.y, Math.round(actualDamage)));
 
-        // 3. DEATH SPAWN LOGIC
         if (this.health <= 0 && this.card.deathSpawnId && !this.hasDeathSpawned) {
             this.hasDeathSpawned = true;
             for(let i=0; i < (this.card.deathSpawnCount || 1); i++) {
@@ -1741,28 +1766,19 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
 
     attack(target) { 
         if (!target) return;
-
         if (this.damage < 0) {
-            // HEALING LOGIC
             if (target.health < target.maxHealth) {
                 target.health = Math.min(target.maxHealth, target.health - this.damage);
                 gameState.damageIndicators.push(new DamageIndicator(target.x, target.y, "+" + Math.abs(this.damage), "#4ade80"));
             }
         } else {
-            // CHAIN LOGIC (Card 79: Consonant Connector)
             if (this.card.id === 79) {
-                // Hit primary
                 if (target.takeDamage) target.takeDamage(this.damage, this);
-                
-                // Find neighbors to zap
                 const enemies = this.owner === 'player' ? gameState.opponent.units : gameState.player.units;
-                // Find up to 2 enemies within 150px of the target
                 const chainTargets = enemies.filter(e => e !== target && distance(target.x, target.y, e.x, e.y) < 150).slice(0, 2);
-                
                 chainTargets.forEach(e => {
                     e.takeDamage(this.damage, this);
                     gameState.effects.push(new Effect(e.x, e.y, { effectType: 'explosion', radius: 15 }));
-                    // Draw visual bolt
                     ctx.save();
                     ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y); ctx.lineTo(e.x, e.y); ctx.stroke();
@@ -1770,17 +1786,27 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
                 });
                 return;
             }
-
-            // NORMAL DAMAGE
-            // Pass 'this' as the source so Reflection works!
             if (target.takeDamage) target.takeDamage(this.damage, this); 
         }
     }
 
+    // --- FIX: ADDED APPLY STATUS HERE ---
+    applyStatus(type, duration, magnitude = 0) {
+        if (type === 'frozen') {
+            this.effects.frozen = { duration: duration };
+        } 
+        else if (type === 'haste') {
+            this.effects.haste = { duration: duration };
+            this.speed = this.card.speed * 2; // Apply speed boost
+        } 
+        else if (type === 'shield') {
+            this.effects.shield = { duration: duration, health: magnitude };
+        }
+    }
+    // ------------------------------------
+
     draw() {
         ctx.save();
-        
-        // Deploy Timer
         if (this.deployTimer > 0) {
             const progress = this.deployTimer / 60;
             ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI * 2 * progress);
@@ -1789,11 +1815,10 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
             ctx.globalAlpha = 0.4;
         }
 
-        // Mastery Glow
         if (this.level >= 5) {
             ctx.shadowBlur = 25;
             ctx.shadowColor = this.level >= 11 ? "#00fbff" : "#FFD700";
-            const rankIcon = this.level >= 11 ? "💎" : (this.level >= 8 ? "🔥" : "⭐");
+            const rankIcon = this.level >= 11 ? "👑" : (this.level >= 8 ? "🔥" : "⭐");
             ctx.font = "10px sans-serif";
             ctx.fillText(rankIcon, this.x + 12, this.y - 12);
         } else {
@@ -1801,23 +1826,23 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
             ctx.shadowColor = this.owner === 'player' ? "#00ffff" : "#ff2d2d";
         }
 
-        // Emoji
         ctx.font = `${this.size * 1.6}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(this.card.emoji, this.x, this.y);
 
-        // Shield
         if (this.effects.shield) {
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size + 5, 0, Math.PI * 2);
             ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
             ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; ctx.fill();
         }
 
-        // Champion Button
         if (this.card.category === 'Champion' && this.owner === 'player') {
-            const btnSize = 12; const btnX = this.x + 15; const btnY = this.y + 15;
+            const btnSize = 12;
+            const btnX = this.x + 15; const btnY = this.y + 15;
             if (this.abilityCooldownTimer > 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(btnX, btnY);
                 const angle = (1 - (this.abilityCooldownTimer / this.card.abilityCooldown)) * Math.PI * 2;
                 ctx.arc(btnX, btnY, btnSize, -Math.PI/2, -Math.PI/2 + angle); ctx.fill();
@@ -1827,15 +1852,17 @@ takeDamage(amount, source, isReflection = false) { // <--- NEW PARAMETER
                 ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize + pulse, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = 'white'; ctx.font = "bold 10px sans-serif";
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText("⚡", btnX, btnY);
-                ctx.fillStyle = '#db2777'; ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = 'white'; ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
+                ctx.fillStyle = '#db2777';
+                ctx.beginPath(); ctx.arc(btnX + 8, btnY + 8, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.fillText(this.card.abilityCost || 1, btnX + 8, btnY + 8);
             } else {
-                ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#4b5563';
+                ctx.beginPath(); ctx.arc(btnX, btnY, btnSize, 0, Math.PI * 2); ctx.fill();
             }
         }
         ctx.restore();
         
-        // Health Bar
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(this.x - this.size/2, this.y + this.size, this.size, 4);
         ctx.fillStyle = this.owner === 'player' ? '#00ffff' : '#ff2d2d';
